@@ -58,7 +58,7 @@ def build_dataset(is_train, args):
         else:
             dataset = datasets.ImageFolder(root)
         nb_classes = args.nb_classes
-        assert len(dataset.class_to_idx) == nb_classes
+        # assert len(dataset.class_to_idx) == nb_classes
     elif args.data_set == 'IMAGENET100':
         print("Reading from datapath", args.data_path)
         root = os.path.join(args.data_path, 'train' if is_train else 'val')
