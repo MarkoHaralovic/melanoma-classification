@@ -32,6 +32,15 @@ import utils
 import models.convnext
 import models.convnext_isotropic
 
+from ffcv.writer import DatasetWriter
+from ffcv.fields import RGBImageField, IntField
+from ffcv.loader import Loader, OrderOption
+from ffcv.transforms import ToTensor, ToDevice, ToTorchImage
+from ffcv.fields.decoders import IntDecoder, RandomResizedCropRGBImageDecoder
+from ffcv.transforms.flip import RandomHorizontalFlip
+from ffcv.transforms.normalize import NormalizeImage
+from ffcv.transforms.random_resized_crop import RandomResizedCrop
+
 def str2bool(v):
     """
     Converts string to bool type; enables command line 
@@ -151,7 +160,7 @@ def get_args_parser():
     parser.add_argument('--nb_classes', default=1000, type=int,
                         help='number of the classification types')
     parser.add_argument('--imagenet_default_mean_and_std', type=str2bool, default=True)
-    parser.add_argument('--data_set', default='IMNET', choices=['CIFAR', 'IMNET', 'image_folder'],
+    parser.add_argument('--data_set', default='IMNET', choices=['CIFAR', 'IMNET', 'image_folder', 'TINY_IMAGENET'],
                         type=str, help='ImageNet dataset path')
     parser.add_argument('--output_dir', default='',
                         help='path where to save, empty for no saving')
@@ -179,6 +188,10 @@ def get_args_parser():
     parser.add_argument('--num_workers', default=10, type=int)
     parser.add_argument('--pin_mem', type=str2bool, default=True,
                         help='Pin CPU memory in DataLoader for more efficient (sometimes) transfer to GPU.')
+    parser.add_argument('--convert_to_ffcv',type=str2bool, default=False,
+                        help='bool flag whether to use ffcv dataloader and convert current dataloader to ffcv version')
+    parser.add_argument('--beton_path',type=str,default='/ConvNeXt-V2/log_dir/imagenet.beton',
+                        help='Specify the path where to save the beton data')
 
     # distributed training parameters
     parser.add_argument('--world_size', default=1, type=int,
@@ -187,7 +200,7 @@ def get_args_parser():
     parser.add_argument('--dist_on_itp', type=str2bool, default=False)
     parser.add_argument('--dist_url', default='env://',
                         help='url used to set up distributed training')
-
+    parser.add_argument('--find_unused_parameters', type=str2bool,default=False)
     parser.add_argument('--use_amp', type=str2bool, default=False, 
                         help="Use PyTorch's AMP (Automatic Mixed Precision) or not")
 
@@ -213,11 +226,14 @@ def main(args):
     cudnn.benchmark = True
 
     dataset_train, args.nb_classes = build_dataset(is_train=True, args=args)
+    print(dataset_train)
+
     if args.disable_eval:
         args.dist_eval = False
         dataset_val = None
     else:
         dataset_val, _ = build_dataset(is_train=False, args=args)
+        print(dataset_val)
 
     num_tasks = utils.get_world_size()
     global_rank = utils.get_rank()
@@ -247,13 +263,71 @@ def main(args):
     else:
         wandb_logger = None
 
-    data_loader_train = torch.utils.data.DataLoader(
-        dataset_train, sampler=sampler_train,
-        batch_size=args.batch_size,
-        num_workers=args.num_workers,
-        pin_memory=args.pin_mem,
-        drop_last=True,
-    )
+    if args.convert_to_ffcv == False:
+        print("Creating standard dataloader.")
+        data_loader_train = torch.utils.data.DataLoader(
+            dataset_train, sampler=sampler_train,
+            batch_size=args.batch_size,
+            num_workers=args.num_workers,
+            pin_memory=args.pin_mem,
+            drop_last=True,
+        )
+    else:
+        if args.finetune:
+            print("Creating ffcv dataset with no augmentations.")
+            beton_path_ft = os.path.join(os.path.split(args.beton_path)[0],'no_aug',os.path.split(args.beton_path)[1])
+            writer = DatasetWriter(
+                Path(beton_path_ft),
+                {
+                    'image' : RGBImageField(write_mode='jpg', max_resolution=args.input_size),
+                    'label' : IntField()
+                }
+            )
+        else:
+            print("Creating ffcv dataset")
+            writer = DatasetWriter(
+                Path(args.beton_path),
+                {
+                    'image' : RGBImageField(write_mode='jpg', max_resolution=args.input_size),
+                    'label' : IntField()
+                }
+            )
+       
+        if not os.path.exists(Path(args.beton_path)):
+            print("Creating beton file")
+            writer.from_indexed_dataset(dataset_train)
+        else:
+            print(f"Beton file with the same name exists on path : {args.beton_path}, skipping conversion.")
+        
+        image_decoder = RandomResizedCropRGBImageDecoder(output_size=(args.input_size, args.input_size), scale=(0.2, 1.0))
+        label_decoder = IntDecoder()
+        
+        if args.finetune:
+            # Data decoding and augmentation
+            image_pipeline = [image_decoder,NormalizeImage(mean=np.array([0.485, 0.456, 0.406]), std=np.array([0.229, 0.224, 0.225]),type=np.uint8),ToTensor(), ToTorchImage(), ToDevice(device)]
+            label_pipeline = [label_decoder, ToTensor(), ToDevice(device)]
+        else:
+            # Data decoding and augmentation
+            image_pipeline = [image_decoder, RandomHorizontalFlip(), NormalizeImage(mean=np.array([0.485, 0.456, 0.406]), std=np.array([0.229, 0.224, 0.225]),type=np.uint8),ToTensor(), ToTorchImage(), ToDevice(device)]
+            label_pipeline = [label_decoder, ToTensor(), ToDevice(device)]
+        
+        # Pipeline for each data field
+        pipelines = {
+            'image': image_pipeline,
+            'label': label_pipeline
+        }
+
+        print("Creating ffcv dataloader")
+        # Replaces PyTorch data loader (`torch.utils.data.Dataloader`)
+        data_loader_train = Loader(fname=Path(args.beton_path), 
+                                   batch_size=args.batch_size, 
+                                   num_workers=args.num_workers,
+                                   order=OrderOption.RANDOM, 
+                                   pipelines=pipelines,
+                                   seed=seed, 
+                                   drop_last=True,
+                                   distributed=args.distributed
+                                   )
 
     if dataset_val is not None:
         data_loader_val = torch.utils.data.DataLoader(
@@ -344,7 +418,11 @@ def main(args):
         print("Assigned values = %s" % str(assigner.values))
 
     if args.distributed:
-        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu], find_unused_parameters=False)
+        model = torch.nn.parallel.DistributedDataParallel(
+            model, 
+            device_ids=[args.gpu], 
+            find_unused_parameters=args.find_unused_parameters
+            )
         model_without_ddp = model.module
 
     optimizer = create_optimizer(
@@ -393,7 +471,7 @@ def main(args):
     print("Start training for %d epochs" % args.epochs)
     start_time = time.time()
     for epoch in range(args.start_epoch, args.epochs):
-        if args.distributed:
+        if args.distributed and not args.convert_to_ffcv:
             data_loader_train.sampler.set_epoch(epoch)
         if log_writer is not None:
             log_writer.set_step(epoch * num_training_steps_per_epoch * args.update_freq)
@@ -408,6 +486,7 @@ def main(args):
             use_amp=args.use_amp
         )
         if args.output_dir and args.save_ckpt:
+            print(f"Saving to location : {args.output_dir}")
             if (epoch + 1) % args.save_ckpt_freq == 0 or epoch + 1 == args.epochs:
                 utils.save_model(
                     args=args, model=model, model_without_ddp=model_without_ddp, optimizer=optimizer,

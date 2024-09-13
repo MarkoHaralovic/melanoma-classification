@@ -14,35 +14,83 @@ from timm.data.constants import \
 from timm.data import create_transform
 
 def build_dataset(is_train, args):
-    transform = build_transform(is_train, args)
+    if not args.convert_to_ffcv :
+        transform = build_transform(is_train, args)
 
-    print("Transform = ")
-    if isinstance(transform, tuple):
-        for trans in transform:
-            print(" - - - - - - - - - - ")
-            for t in trans.transforms:
+        print("Transform = ")
+        if isinstance(transform, tuple):
+            for trans in transform:
+                print(" - - - - - - - - - - ")
+                for t in trans.transforms:
+                    print(t)
+        else:
+            for t in transform.transforms:
                 print(t)
+        print("---------------------------")
     else:
-        for t in transform.transforms:
-            print(t)
-    print("---------------------------")
-
+        import warnings
+        warnings.warn("As the transformations are built using factory method timm.data.create_transform,\
+                      such a factory method should be implemented for ffcv module as well.\
+                      Currently transformations cannot be dynamically allocated for ffcv module \
+                      and any ffcv dataset that is built will contain no augmented images, if not specified here otherwise.",
+                      UserWarning)
     if args.data_set == 'CIFAR':
-        dataset = datasets.CIFAR100(args.data_path, train=is_train, transform=transform, download=True)
-        nb_classes = 100
+        if not args.convert_to_ffcv :
+            dataset = datasets.CIFAR100(args.data_path, train=is_train, transform=transform, download=True)
+        else:
+            dataset = datasets.CIFAR100(args.data_path, train=is_train, download=True)
+        nb_classes = args.nb_classes
+        assert len(dataset.class_to_idx) == nb_classes
     elif args.data_set == 'IMNET':
-        print("reading from datapath", args.data_path)
+        print("Reading from datapath", args.data_path)
         root = os.path.join(args.data_path, 'train' if is_train else 'val')
-        dataset = datasets.ImageFolder(root, transform=transform)
-        nb_classes = 1000
+        if not args.convert_to_ffcv :
+            dataset = datasets.ImageFolder(root, transform=transform)
+        else:
+            dataset = datasets.ImageFolder(root)
+        nb_classes = args.nb_classes
+        assert len(dataset.class_to_idx) == nb_classes
+    elif args.data_set == 'IMAGENET1K':
+        print("Reading from datapath", args.data_path)
+        root = os.path.join(args.data_path, 'train' if is_train else 'val')
+        if not args.convert_to_ffcv :
+            dataset = datasets.ImageFolder(root, transform=transform)
+        else:
+            dataset = datasets.ImageFolder(root)
+        nb_classes = args.nb_classes
+        assert len(dataset.class_to_idx) == nb_classes
+    elif args.data_set == 'IMAGENET100':
+        print("Reading from datapath", args.data_path)
+        root = os.path.join(args.data_path, 'train' if is_train else 'val')
+        if not args.convert_to_ffcv :
+            dataset = datasets.ImageFolder(root, transform=transform)
+        else:
+            dataset = datasets.ImageFolder(root)
+        nb_classes = args.nb_classes
+        assert len(dataset.class_to_idx) == nb_classes
+    elif args.data_set == 'TINY_IMAGENET':
+        print("Reading from datapath", args.data_path)
+        root = os.path.join(args.data_path, 'train' if is_train else 'val')
+        if not args.convert_to_ffcv :
+            dataset = datasets.ImageFolder(root, transform=transform)
+        else:
+            dataset = datasets.ImageFolder(root)
+        nb_classes = args.nb_classes
+        assert len(dataset.class_to_idx) == nb_classes
     elif args.data_set == "image_folder":
+        print("Reading from datapath", args.data_path)
         root = args.data_path if is_train else args.eval_data_path
-        dataset = datasets.ImageFolder(root, transform=transform)
+        if not args.convert_to_ffcv :
+            dataset = datasets.ImageFolder(root, transform=transform)
+        else:
+            dataset = datasets.ImageFolder(root)
         nb_classes = args.nb_classes
         assert len(dataset.class_to_idx) == nb_classes
     else:
         raise NotImplementedError()
-    print("Number of the class = %d" % nb_classes)
+    
+    print(f"Dataset type : {args.data_path}")
+    print("Number of classes= %d" % nb_classes)
 
     return dataset, nb_classes
 
@@ -82,8 +130,10 @@ def build_transform(is_train, args):
         )
             print(f"Warping {args.input_size} size input images...")
         else:
-            if args.crop_pct is None:
+            if args.crop_pct is None and args.input_size == 224: 
                 args.crop_pct = 224 / 256
+            elif args.crop_pct is None:
+                args.crop_pct = 1.0
             size = int(args.input_size / args.crop_pct)
             t.append(
                 # to maintain same ratio w.r.t. 224 images
