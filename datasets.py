@@ -13,10 +13,9 @@ from timm.data.constants import \
     IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD, IMAGENET_INCEPTION_MEAN, IMAGENET_INCEPTION_STD
 from timm.data import create_transform
 
-def build_dataset(is_train, args):
-    if not args.convert_to_ffcv :
+def build_dataset(is_train, args, transform=None):
+    if not args.convert_to_ffcv and transform is None:
         transform = build_transform(is_train, args)
-
         print("Transform = ")
         if isinstance(transform, tuple):
             for trans in transform:
@@ -27,6 +26,7 @@ def build_dataset(is_train, args):
             for t in transform.transforms:
                 print(t)
         print("---------------------------")
+
     else:
         import warnings
         warnings.warn("As the transformations are built using factory method timm.data.create_transform,\
@@ -39,48 +39,41 @@ def build_dataset(is_train, args):
             dataset = datasets.CIFAR100(args.data_path, train=is_train, transform=transform, download=True)
         else:
             dataset = datasets.CIFAR100(args.data_path, train=is_train, download=True)
-        nb_classes = args.nb_classes
-        assert len(dataset.class_to_idx) == nb_classes
+        nb_classes = 100
     elif args.data_set == 'IMNET':
-        print("Reading from datapath", args.data_path)
         root = os.path.join(args.data_path, 'train' if is_train else 'val')
         if not args.convert_to_ffcv :
             dataset = datasets.ImageFolder(root, transform=transform)
         else:
             dataset = datasets.ImageFolder(root)
-        nb_classes = args.nb_classes
-        assert len(dataset.class_to_idx) == nb_classes
+        nb_classes = 1000
     elif args.data_set == 'IMAGENET1K':
-        print("Reading from datapath", args.data_path)
         root = os.path.join(args.data_path, 'train' if is_train else 'val')
         if not args.convert_to_ffcv :
             dataset = datasets.ImageFolder(root, transform=transform)
         else:
             dataset = datasets.ImageFolder(root)
-        nb_classes = args.nb_classes
-        # assert len(dataset.class_to_idx) == nb_classes
+        nb_classes = 1000
+        assert args.nb_classes == nb_classes
     elif args.data_set == 'IMAGENET100':
-        print("Reading from datapath", args.data_path)
         root = os.path.join(args.data_path, 'train' if is_train else 'val')
         if not args.convert_to_ffcv :
             dataset = datasets.ImageFolder(root, transform=transform)
         else:
             dataset = datasets.ImageFolder(root)
-        nb_classes = args.nb_classes
-        assert len(dataset.class_to_idx) == nb_classes
+        nb_classes = 100
+        assert args.nb_classes == nb_classes
     elif args.data_set == 'TINY_IMAGENET':
-        print("Reading from datapath", args.data_path)
         root = os.path.join(args.data_path, 'train' if is_train else 'val')
         if not args.convert_to_ffcv :
             dataset = datasets.ImageFolder(root, transform=transform)
         else:
             dataset = datasets.ImageFolder(root)
-        nb_classes = args.nb_classes
-        assert len(dataset.class_to_idx) == nb_classes
+        nb_classes = 200
+        assert args.nb_classes == nb_classes
     elif args.data_set == "image_folder":
-        print("Reading from datapath", args.data_path)
         root = args.data_path if is_train else args.eval_data_path
-        if not args.convert_to_ffcv :
+        if not args.convert_to_ffcv:
             dataset = datasets.ImageFolder(root, transform=transform)
         else:
             dataset = datasets.ImageFolder(root)
@@ -90,10 +83,10 @@ def build_dataset(is_train, args):
         raise NotImplementedError()
     
     print(f"Dataset type : {args.data_path}")
-    print("Number of classes= %d" % nb_classes)
+    print("Reading from datapath", args.data_path)
+    print("Number of classes =  %d" % nb_classes)
 
     return dataset, nb_classes
-
 
 def build_transform(is_train, args):
     resize_im = args.input_size > 32
@@ -102,7 +95,6 @@ def build_transform(is_train, args):
     std = IMAGENET_INCEPTION_STD if not imagenet_default_mean_and_std else IMAGENET_DEFAULT_STD
 
     if is_train:
-        # this should always dispatch to transforms_imagenet_train
         transform = create_transform(
             input_size=args.input_size,
             is_training=True,
@@ -130,17 +122,17 @@ def build_transform(is_train, args):
         )
             print(f"Warping {args.input_size} size input images...")
         else:
-            if args.crop_pct is None and args.input_size == 224: 
+            if args.crop_pct is None and args.input_size==224: 
                 args.crop_pct = 224 / 256
             elif args.crop_pct is None:
                 args.crop_pct = 1.0
             size = int(args.input_size / args.crop_pct)
             t.append(
-                # to maintain same ratio w.r.t. 224 images
-                transforms.Resize(size, interpolation=transforms.InterpolationMode.BICUBIC),  
+                transforms.Resize((size,size), interpolation=transforms.InterpolationMode.BICUBIC),  
             )
             t.append(transforms.CenterCrop(args.input_size))
 
     t.append(transforms.ToTensor())
     t.append(transforms.Normalize(mean, std))
+    print(t)
     return transforms.Compose(t)
