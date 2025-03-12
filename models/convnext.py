@@ -156,42 +156,6 @@ model_urls = {
 }
 
 @register_model
-def convnext_atto(pretrained=False,in_22k=False, **kwargs):
-    model = ConvNeXt(depths=[2, 2, 6, 2], dims=[40, 80, 160, 320], **kwargs)
-    if pretrained:
-        url = model_urls['convnext_atto_22k'] if in_22k else model_urls['convnext_atto_1k']
-        checkpoint = torch.hub.load_state_dict_from_url(url=url, map_location="cpu", check_hash=True)
-        model.load_state_dict(checkpoint["model"])
-    return model
-
-@register_model
-def convnext_femto(pretrained=False,in_22k=False, **kwargs):
-    model = ConvNeXt(depths=[2, 2, 6, 2], dims=[48, 96, 192, 384], **kwargs)
-    if pretrained:
-        url = model_urls['convnext_femto_22k'] if in_22k else model_urls['convnext_femto_1k']
-        checkpoint = torch.hub.load_state_dict_from_url(url=url, map_location="cpu", check_hash=True)
-        model.load_state_dict(checkpoint["model"])
-    return model
-
-@register_model
-def convnext_pico(pretrained=False,in_22k=False, **kwargs):
-    model = ConvNeXt(depths=[2, 2, 6, 2], dims=[64, 128, 256, 512], **kwargs)
-    if pretrained:
-        url = model_urls['convnext_pico_22k'] if in_22k else model_urls['convnext_pico_1k']
-        checkpoint = torch.hub.load_state_dict_from_url(url=url, map_location="cpu", check_hash=True)
-        model.load_state_dict(checkpoint["model"])
-    return model
-
-@register_model
-def convnext_nano(pretrained=False,in_22k=False, **kwargs):
-    model = ConvNeXt(depths=[2, 2, 8, 2], dims=[80, 160, 320, 640], **kwargs)
-    if pretrained:
-        url = model_urls['convnext_nano_22k'] if in_22k else model_urls['convnext_nano_1k']
-        checkpoint = torch.hub.load_state_dict_from_url(url=url, map_location="cpu", check_hash=True)
-        model.load_state_dict(checkpoint["model"])
-    return model
-
-@register_model
 def convnext_tiny(pretrained=False,in_22k=False, **kwargs):
     model = ConvNeXt(depths=[3, 3, 9, 3], dims=[96, 192, 384, 768], **kwargs)
     if pretrained:
