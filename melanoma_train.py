@@ -65,8 +65,8 @@ def train(args):
     
     train_transform = transforms.Compose([
         transforms.Resize((args.input_size, args.input_size)),
-        transforms.RandomHorizontalFlip(),
-        transforms.RandomVerticalFlip(),
+        transforms.RandomHorizontalFlip(p = 0.5),
+        transforms.RandomVerticalFlip(p = 0.5),
         transforms.RandomRotation(15),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
@@ -140,7 +140,7 @@ def train(args):
     n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
 
     print("Model = %s" % str(model_without_ddp))
-    print('number of params:', n_parameters)
+    logging.info('number of params:', n_parameters)
     
     model_ema = None
     if args.model_ema:
@@ -177,7 +177,7 @@ def train(args):
         assigner = None
 
     if assigner is not None:
-        print("Assigned values = %s" % str(assigner.values))
+        logging.info("Assigned values = %s" % str(assigner.values))
         
     optimizer = create_optimizer(
         args, model_without_ddp, skip_list=None,

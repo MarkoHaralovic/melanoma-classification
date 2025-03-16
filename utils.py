@@ -6,6 +6,7 @@
 # LICENSE file in the root directory of this source tree.
 
 
+import logging
 import os
 import math
 import time
@@ -150,13 +151,13 @@ class MetricLogger(object):
                 eta_seconds = iter_time.global_avg * (len(iterable) - i)
                 eta_string = str(datetime.timedelta(seconds=int(eta_seconds)))
                 if torch.cuda.is_available():
-                    print(log_msg.format(
+                    logging.info(log_msg.format(
                         i, len(iterable), eta=eta_string,
                         meters=str(self),
                         time=str(iter_time), data=str(data_time),
                         memory=torch.cuda.max_memory_allocated() / MB))
                 else:
-                    print(log_msg.format(
+                    logging.info(log_msg.format(
                         i, len(iterable), eta=eta_string,
                         meters=str(self),
                         time=str(iter_time), data=str(data_time)))
@@ -164,7 +165,7 @@ class MetricLogger(object):
             end = time.time()
         total_time = time.time() - start_time
         total_time_str = str(datetime.timedelta(seconds=int(total_time)))
-        print('{} Total time: {} ({:.4f} s / it)'.format(
+        logging.info('{} Total time: {} ({:.4f} s / it)'.format(
             header, total_time_str, total_time / len(iterable)))
 
 
@@ -248,7 +249,6 @@ class WandbLogger(object):
         self._wandb.define_metric('Global Train/*', step_metric='epoch')
         self._wandb.define_metric('Global Test/*', step_metric='epoch')
 
-
 def setup_for_distributed(is_master):
     """
     This function disables printing when not in master process
@@ -316,7 +316,7 @@ def init_distributed_mode(args):
         os.environ['LOCAL_RANK'] = str(args.gpu)
         os.environ['WORLD_SIZE'] = str(args.world_size)
     else:
-        print('Not using distributed mode')
+        logging.info('Not using distributed mode')
         args.distributed = False
         return
 
@@ -324,7 +324,7 @@ def init_distributed_mode(args):
 
     torch.cuda.set_device(args.gpu)
     args.dist_backend = 'nccl'
-    print('| distributed init (rank {}): {}, gpu {}'.format(
+    logging.info('| distributed init (rank {}): {}, gpu {}'.format(
         args.rank, args.dist_url, args.gpu), flush=True)
     torch.distributed.init_process_group(backend=args.dist_backend, init_method=args.dist_url,
                                          world_size=args.world_size, rank=args.rank)
@@ -369,16 +369,16 @@ def load_state_dict(model, state_dict, prefix='', ignore_missing="relative_posit
     missing_keys = warn_missing_keys
 
     if len(missing_keys) > 0:
-        print("Weights of {} not initialized from pretrained model: {}".format(
+        logging.warning("Weights of {} not initialized from pretrained model: {}".format(
             model.__class__.__name__, missing_keys))
     if len(unexpected_keys) > 0:
-        print("Weights from pretrained model not used in {}: {}".format(
+        logging.warning("Weights from pretrained model not used in {}: {}".format(
             model.__class__.__name__, unexpected_keys))
     if len(ignore_missing_keys) > 0:
-        print("Ignored weights of {} not initialized from pretrained model: {}".format(
+        logging.warning("Ignored weights of {} not initialized from pretrained model: {}".format(
             model.__class__.__name__, ignore_missing_keys))
     if len(error_msgs) > 0:
-        print('\n'.join(error_msgs))
+        logging.error('\n'.join(error_msgs))
 
 
 class NativeScalerWithGradNormCount:
@@ -431,7 +431,7 @@ def cosine_scheduler(base_value, final_value, epochs, niter_per_ep, warmup_epoch
     warmup_iters = warmup_epochs * niter_per_ep
     if warmup_steps > 0:
         warmup_iters = warmup_steps
-    print("Set warmup steps = %d" % warmup_iters)
+    logging.info("Set warmup steps = %d" % warmup_iters)
     if warmup_epochs > 0:
         warmup_schedule = np.linspace(start_warmup_value, base_value, warmup_iters)
 
@@ -481,7 +481,7 @@ def auto_load_model(args, model, model_without_ddp, optimizer, loss_scaler, mode
                 latest_ckpt = max(int(t), latest_ckpt)
         if latest_ckpt >= 0:
             args.resume = os.path.join(output_dir, 'checkpoint-%d.pth' % latest_ckpt)
-        print("Auto resume checkpoint: %s" % args.resume)
+        logging.info("Auto resume checkpoint: %s" % args.resume)
 
     if args.resume:
         if args.resume.startswith('https'):
@@ -490,7 +490,7 @@ def auto_load_model(args, model, model_without_ddp, optimizer, loss_scaler, mode
         else:
             checkpoint = torch.load(args.resume, map_location='cpu')
         model_without_ddp.load_state_dict(checkpoint['model'])
-        print("Resume checkpoint %s" % args.resume)
+        logging.info("Resume checkpoint %s" % args.resume)
         if 'optimizer' in checkpoint and 'epoch' in checkpoint:
             optimizer.load_state_dict(checkpoint['optimizer'])
             if not isinstance(checkpoint['epoch'], str): # does not support resuming with 'best', 'best-ema'
@@ -504,4 +504,4 @@ def auto_load_model(args, model, model_without_ddp, optimizer, loss_scaler, mode
                     model_ema.ema.load_state_dict(checkpoint['model'])
             if 'scaler' in checkpoint:
                 loss_scaler.load_state_dict(checkpoint['scaler'])
-            print("With optim & sched!")
+            logging.info("With optim & sched!")
