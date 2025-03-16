@@ -8,14 +8,6 @@ else
     echo "Running on CPU"
 fi
 
-if [ -x "$(command -v nvidia-smi)" ]; then
-    DEVICE="cuda:0"
-    echo "Running on GPU"
-else
-    DEVICE="cpu"
-    echo "Running on CPU"
-fi
-
 python melanoma_train.py \
       --data_path "C:\lumen_melanoma_classification\ConvNeXt\isic2020_challenge" \
       --model convnext_tiny \
@@ -23,6 +15,7 @@ python melanoma_train.py \
       --epochs 10 \
       --device $DEVICE \
       --input_size 224 \
+      --num_classes 2 \
       --num_workers 0 \
       --pretrained True \
       --output_dir ./melanoma_classifier_output \
@@ -30,4 +23,6 @@ python melanoma_train.py \
       --warmup_epochs 1 \
       --use_amp False \
       --mixup 0.0 \
-      --update_freq 1
+      --update_freq 1 \
+      --ohem \
+      --ifw

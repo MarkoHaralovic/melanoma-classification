@@ -7,6 +7,7 @@ import torch.nn as nn
 import torch.backends.cudnn as cudnn
 import json
 import os
+import sys
 from pathlib import Path
 
 from timm.data.mixup import Mixup
@@ -17,14 +18,16 @@ import torchvision.transforms as transforms
 from torchvision.datasets import ImageFolder
 
 from models.melanoma_classifier import MelanomaClassifier
-from models.criterion import OhemCrossEntropy
+from models.criterion import OhemCrossEntropy,RecallCrossEntropy, labels_to_class_weights
 from engine import train_one_epoch, evaluate
 from utils import NativeScalerWithGradNormCount as NativeScaler
 from optim_factory import create_optimizer, LayerDecayValueAssigner
 import utils
 import logging
 from tqdm import tqdm
+
 logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger()
 
 def str2bool(v):
     """
@@ -83,9 +86,7 @@ def train(args):
     logging.info(f"Validation dataset size: {len(val_dataset)}")
     logging.info(f"Training with  {args.batch_size} images per batch")
     logging.info(f"Training with  {args.num_classes} classes")
-    import sys
-    sys.exit()
-    
+
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
         batch_size=args.batch_size,
@@ -105,9 +106,29 @@ def train(args):
     )
     
     log_writer = None
-    if args.log_dir:
-        os.makedirs(args.log_dir, exist_ok=True)
-        log_writer = utils.TensorboardLogger(log_dir=args.log_dir)
+    if args.output_dir:
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        model_name = args.model
+        run_name = f"{timestamp}_{model_name}_bs{args.batch_size}"
+        
+        args.output_dir = os.path.join(args.output_dir, run_name)
+        os.makedirs(args.output_dir, exist_ok=True)
+        
+        log_file = os.path.join(args.output_dir, "training.log")
+        file_handler = logging.FileHandler(log_file)
+        file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+        logger.addHandler(file_handler)
+        
+        logging.info(f"Saving outputs to: {args.output_dir}")
+        logging.info(f"Logging to: {log_file}")
+        
+        with open(os.path.join(args.output_dir, "config.json"), 'w') as f:
+            json.dump(vars(args), f, indent=4)
+        args.log_dir = os.path.join(args.output_dir, "logs")
+        
+        if args.log_dir:
+            os.makedirs(args.log_dir, exist_ok=True)
+            log_writer = utils.TensorboardLogger(log_dir=args.log_dir)
     
     model = MelanomaClassifier(
         model_name=args.model,
@@ -176,27 +197,28 @@ def train(args):
         args.weight_decay, args.weight_decay_end, args.epochs, num_training_steps_per_epoch)
     logging.info(f"Max WD = {max(wd_schedule_values):.7f}, Min WD = {min(wd_schedule_values):.7f}")
     
-    if mixup_fn is not None:
+    if args.ifw:
+        class_weights = labels_to_class_weights(train_dataset.samples, args.num_classes, alpha = 0.5)
+    else:
+        class_weights = torch.ones(args.num_classes) 
+        
+    if args.ohem:
+        criterion = OhemCrossEntropy(
+            ignore_label=-1, 
+            thres=0.7, 
+            weight = class_weights)  
+    elif args.recall_ce:
+        criterion = RecallCrossEntropy(
+            n_classes=args.num_classes, 
+            weight = class_weights)
+    elif mixup_fn is not None:
         criterion = SoftTargetCrossEntropy()
     elif args.smoothing > 0:
         criterion = LabelSmoothingCrossEntropy(smoothing=args.smoothing)
     else:
-        criterion = nn.CrossEntropyLoss()
+        criterion = nn.CrossEntropyLoss(weight = class_weights)
     
     logging.info(f"Criterion: {criterion}")
-    
-    if args.output_dir:
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        model_name = args.model.replace('convnext_', '')
-        run_name = f"{timestamp}_{model_name}_bs{args.batch_size}"
-        
-        args.output_dir = os.path.join(args.output_dir, run_name)
-        os.makedirs(args.output_dir, exist_ok=True)
-        logging.info(f"Saving outputs to: {args.output_dir}")
-        
-        with open(os.path.join(args.output_dir, "config.json"), 'w') as f:
-            json.dump(vars(args), f, indent=4)
-        args.log_dir = os.path.join(args.output_dir, "logs")
     
     if args.resume:
         if os.path.isfile(args.resume):
@@ -316,11 +338,12 @@ if __name__ == '__main__':
                         help='Gradient accumulation steps')
     
     # Criterion parameters
-    parser.add_argument('--ohem', type=bool, default=False,
-                        help='Use OHEM loss')
-    parser.add_argument('--ifw', type=bool, default=False,
+    parser.add_argument('--ohem', action='store_true', default=False,
+                    help='Use OHEM loss')
+    parser.add_argument('--ifw', action='store_true', default=False,
                         help='Use inverse frequency weighting.')
-    
+    parser.add_argument('--recall_ce', action='store_true', default=False,
+                        help='Use Recall Cross Entropy loss')
     # Optimizer parameters
     parser.add_argument('--opt', default='adamw', type=str, metavar='OPTIMIZER',
                         help='Optimizer (default: "adamw"')
