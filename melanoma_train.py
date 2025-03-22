@@ -26,7 +26,13 @@ import utils
 import logging
 from tqdm import tqdm
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler()  
+    ]
+)
 logger = logging.getLogger()
 
 def str2bool(v):
