@@ -199,8 +199,9 @@ def train(args):
     
     if args.ifw:
         class_weights = labels_to_class_weights(train_dataset.samples, args.num_classes, alpha = 0.5)
+        class_weights = class_weights.to(device)  
     else:
-        class_weights = torch.ones(args.num_classes) 
+        class_weights = torch.ones(args.num_classes, device=device) 
         
     if args.ohem:
         criterion = OhemCrossEntropy(
