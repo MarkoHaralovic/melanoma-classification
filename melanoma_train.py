@@ -352,11 +352,11 @@ if __name__ == '__main__':
     
     parser.add_argument('--kaggle', action='store_true', default=False,
                     help='Runnin on kaggle')
-    parser.add_argument('--kaggle', default=r"/kaggle/input/siim-isic-melanoma-classification/train.csv", type=str,
+    parser.add_argument('--kaggle_csv_file', default=r"/kaggle/input/siim-isic-melanoma-classification/train.csv", type=str,
                         help='Path to the CSV file containing image names and labels on Kaggle')
-    parser.add_argument('--kaggle', default=r"/kaggle/input/siim-isic-melanoma-classification/jpeg/train", type=str,
+    parser.add_argument('--kaggle_image_dir', default=r"/kaggle/input/siim-isic-melanoma-classification/jpeg/train", type=str,
                         help='Path to the folder with images on Kaggle')
-    
+
     parser.add_argument('--data_path', default='./isic2020_challenge', type=str,
                         help='Path to dataset with train/valid folders')
     parser.add_argument('--output_dir', default='./melanoma_output', type=str,

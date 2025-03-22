@@ -10,6 +10,8 @@ fi
 
 python melanoma_train.py \
       --data_path "C:\lumen_melanoma_classification\ConvNeXt\isic2020_challenge" \
+      --kaggle False \
+      --skin_color_csv "C:\lumen_melanoma_classification\isic2020_challenge\ISIC_2020_full.csv" \
       --model convnext_tiny \
       --batch_size 8 \
       --epochs 10 \
