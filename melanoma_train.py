@@ -15,16 +15,15 @@ from timm.loss import LabelSmoothingCrossEntropy, SoftTargetCrossEntropy
 from timm.utils import ModelEma
 
 import torchvision.transforms as transforms
-from torchvision.datasets import ImageFolder
 
 from models.melanoma_classifier import MelanomaClassifier
 from models.criterion import OhemCrossEntropy,RecallCrossEntropy, labels_to_class_weights
 from engine import train_one_epoch, evaluate
 from utils import NativeScalerWithGradNormCount as NativeScaler
 from optim_factory import create_optimizer, LayerDecayValueAssigner
+from datasets import KaggleISICDataset, LocalISICDataset
 import utils
 import logging
-from tqdm import tqdm
 
 logging.basicConfig(
     level=logging.INFO,
@@ -69,30 +68,66 @@ def train(args):
     np.random.seed(seed)
     cudnn.benchmark = True
     
-    train_transform = transforms.Compose([
-        transforms.Resize((args.input_size, args.input_size)),
-        transforms.RandomHorizontalFlip(p = 0.5),
-        transforms.RandomVerticalFlip(p = 0.5),
-        transforms.RandomRotation(15),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    transform = transforms.Compose([
+            transforms.Resize((args.input_size, args.input_size)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
-    
-    val_transform = transforms.Compose([
-        transforms.Resize((args.input_size, args.input_size)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-    ])
-    
-    train_dataset = ImageFolder(train_dir, transform=train_transform)
-    val_dataset = ImageFolder(valid_dir, transform=val_transform)
-    
-    logging.info(f"Train dataset classes: {train_dataset.classes}")
-    logging.info(f"Train dataset size: {len(train_dataset)}")
-    logging.info(f"Validation dataset size: {len(val_dataset)}")
-    logging.info(f"Training with  {args.batch_size} images per batch")
-    logging.info(f"Training with  {args.num_classes} classes")
+    malignant_class_transform = {
+            "original": transforms.Compose([]),
+            "horizontal_flip": transforms.Compose([transforms.RandomHorizontalFlip(p=1.0)]),
+            "vertical_flip": transforms.Compose([transforms.RandomVerticalFlip(p=1.0)]),
+            "rotate": transforms.Compose([transforms.RandomRotation(15)]),
+            "translate": transforms.Compose([transforms.RandomAffine(degrees=0, translate=(0.1, 0.1))])
+    }
+        
+    if not args.kaggle:
+   
+        train_dataset = LocalISICDataset(args.data_path, 
+                                         transform=transform,
+                                         augment_transforms = malignant_class_transform,
+                                         split='train',
+                                         skin_color_csv=args.skin_color_csv)
+        
+        val_dataset = LocalISICDataset(args.data_path, 
+                                         transform=transform,
+                                         augment_transforms = None,
+                                         split='valid',
+                                         skin_color_csv=args.skin_color_csv)
+    else:
+        train_dataset = KaggleISICDataset(args.kaggle_csv_file, 
+                                    args.kaggle_image_dir, 
+                                    args.skin_color_csv,
+                                    transform=transform,
+                                    augment_transforms = malignant_class_transform,
+                                    split='train')
 
+        val_dataset = KaggleISICDataset(args.kaggle_csv_file,
+                                  args.kaggle_image_dir, 
+                                  args.skin_color_csv,
+                                  transform=transform, 
+                                  augment_transforms = malignant_class_transform,
+                                  split='valid')
+        
+        
+    logging.info(f"Train dataset size: {len(train_dataset)}")
+    logging.info(f"Train dataset classes: {train_dataset.classes}")
+    logging.info(f"Train dataset class_distribution: {train_dataset.class_distribution}")
+    logging.info(f"Train dataset oversample_ratio: {train_dataset.oversample_ratio}")
+    
+    if args.skin_color_csv is not None:
+        logging.info(f"Train dataset groups: {train_dataset.groups}")
+        logging.info(f"Train dataset group distribution: {train_dataset.group}")
+            
+    logging.info(f"Validation dataset size: {len(train_dataset)}")
+    logging.info(f"Validation dataset classes: {train_dataset.classes}")
+    logging.info(f"Validation dataset class_distribution: {train_dataset.class_distribution}")
+    logging.info(f"Validation dataset oversample_ratio: {train_dataset.oversample_ratio}")
+    
+    if args.skin_color_csv is not None:
+        logging.info(f"Validation dataset groups: {train_dataset.groups}")
+        logging.info(f"Validation dataset group distribution: {train_dataset.group}")
+        
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
         batch_size=args.batch_size,
@@ -315,6 +350,13 @@ def train(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser('Melanoma Classification Training')
     
+    parser.add_argument('--kaggle', action='store_true', default=False,
+                    help='Runnin on kaggle')
+    parser.add_argument('--kaggle', default=r"/kaggle/input/siim-isic-melanoma-classification/train.csv", type=str,
+                        help='Path to the CSV file containing image names and labels on Kaggle')
+    parser.add_argument('--kaggle', default=r"/kaggle/input/siim-isic-melanoma-classification/jpeg/train", type=str,
+                        help='Path to the folder with images on Kaggle')
+    
     parser.add_argument('--data_path', default='./isic2020_challenge', type=str,
                         help='Path to dataset with train/valid folders')
     parser.add_argument('--output_dir', default='./melanoma_output', type=str,
@@ -334,7 +376,7 @@ if __name__ == '__main__':
     parser.add_argument('--drop_path', type=float, default=0.1,
                         help='Drop path rate')
     
-    # Training parameters
+    # Training parameter
     parser.add_argument('--batch_size', default=16, type=int,
                         help='Batch size for training and validation')
     parser.add_argument('--epochs', default=30, type=int,
@@ -403,7 +445,7 @@ if __name__ == '__main__':
                         help='Use PyTorch automatic mixed precision')
     parser.add_argument('--save_ckpt', type=str2bool, default=True,
                         help='Save checkpoints during training')
-    parser.add_argument('--save_ckpt_freq', type=int, default=5,
+    parser.add_argument('--save_ckpt_freq', type=int, default=1,
                         help='Frequency to save checkpoints (epochs)')
     parser.add_argument('--seed', default=0, type=int,
                         help='Random seed for reproducibility')
@@ -414,7 +456,7 @@ if __name__ == '__main__':
     parser.add_argument('--pin_mem', type=str2bool, default=True,
                         help='Pin CPU memory for data loading')
     parser.add_argument('--resume', default='', type=str,
-                        help='Resume from checkpoint')
+                        help='Resume from checkpoint') 
     
     args = parser.parse_args()
     

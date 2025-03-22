@@ -1,56 +1,208 @@
-str= "[CLS] brown pelican chick. [CLS] animal. [CLS] wind/sup-board. [CLS] pool. [CLS] the outstretched arm of a man holding wii controllers. [CLS] riding horse standing in a mar \
-ket place. [CLS] power line insulator. [CLS] young man in green eating a doughnut. [CLS] man in the blue shirt and shorts behind the young boy. [CLS] a woman in glasses and a white shirt holding \
- a pizza. [CLS] hut/tent. [CLS] minibus. [CLS] low-density smoke. [CLS] cng. [CLS] pickup truck. [CLS] tugboat. [CLS] great blue heron nest. [CLS] front loader/bulldozer. [CLS] t-bar. [CLS] a re \
-d leather chair next to an end table with a box of tissues on it. [CLS] tank car. [CLS] cable tower. [CLS] the plane that is in focus. [CLS] smoke. [CLS] white ibis nest. [CLS] airplane. [CLS] s \
-ailboat. [CLS] black skimmer flying. [CLS] a drink with ice in it. [CLS] trailer. [CLS] great blue heron egg. [CLS] bicycle. [CLS] large vehicle. [CLS] tern. [CLS] other bird. [CLS] vehicle lot. \
- [CLS] landslide. [CLS] small aircraft. [CLS] passenger vehicle. [CLS] swimmer. [CLS] truck w/box. [CLS] bridge. [CLS] excavator. [CLS] waterbuck. [CLS] small car. [CLS] manual van. [CLS] wind t \
-urbine. [CLS] reach stacker. [CLS] utility truck. [CLS] older man in a white shirt and black pants about to throw a frisbee. [CLS] ground grader.', '[CLS] a cow with its head up in the air. [CLS] person. [CLS] shipping container lot. [CLS] passenger vehicle. [CLS] oil storage tank. [CLS] brown pelican chick. [CLS] brown pelican - wings spread. [CLS] fairway. [CLS] front loader/bulldoze \
-r. [CLS] the bicycle that is closest to the camera. [CLS] sailboat. [CLS] mobile crane. [CLS] stressed potato plant. [CLS] truck w/box. [CLS] laughing gull juvenile. [CLS] white ibis juvenile. [CLS] kayak. [CLS] a zebra standing in the lead of three other zebras. [CLS] helipad. [CLS] damage. [CLS] cattle. [CLS] black skimmer adult. [CLS] black crowned night heron adult. [CLS] waterbuck \
-. [CLS] aircraft hangar. [CLS] helicopter. [CLS] crabmeat in a box with other vegetables. [CLS] bunker. [CLS] a college student checking her smart phone while hanging out in a study group. [CLS] \
- a woman in glasses and a white shirt holding a pizza. [CLS] sushi rolls with white rice. [CLS] excavator. [CLS] the outstretched arm of a man holding wii controllers. [CLS] smoke. [CLS] a perso \
-n in a brown dog costume. [CLS] older man in a white shirt and black pants about to throw a frisbee. [CLS] mid-density smoke. [CLS] dirt. [CLS] reddish egret adult. [CLS] power line plate. [CLS] \
- palm. [CLS] trailer. [CLS] a blue - headed bird looking to the right. [CLS] american avocet adult. [CLS] barge.', '[CLS] swimmer. [CLS] car. [CLS] a bluish - gray lazy - boy reclining chair. [CLS] tricolored heron adult. [CLS] the man has on a dark shirt and no hat. [CLS] well. [CLS] mixed tern flying. [CLS] low-density smoke. [CLS] prefabricated house. [CLS] lightly damaged tree. [CLS] surfboard. [CLS] american oystercatcher. [CLS] person. [CLS] the motorcycle with the person sitting on it. [CLS] healthy potato plant. [CLS] container ship. [CLS] goat. [CLS] utility truck. [CLS] cycle. [CLS] yacht. [CLS] laughing gull juvenile. [CLS] tricycle. [CLS] small vehicle. [CLS] container crane. [CLS] the male in the middle. [CLS] the top of a 3 - tier cake. [CLS] cng. [CLS] bicycle. [CLS] pedestrian. [CLS] power line tower. [CLS] older man in a white shirt and black pants about to throw a frisbee. [CLS] a blue raft with a mans feet spread across the raft. [CLS] s \
-traddle carrier. [CLS] stressed potato plant. [CLS] mixed tern adult. [CLS] a man driving a sporty street bike. [CLS] great blue heron adult. [CLS] white ibis juvenile. [CLS] bridge. [CLS] kayak \
-. [CLS] boat. [CLS] manual van. [CLS] cable tower. [CLS] van. [CLS] haul truck. [CLS] the pa keyboard on the right , in front. [CLS] a zebra standing in the lead of three other zebras. [CLS] car \
-go truck. [CLS] animal. [CLS] cattle egret flying. [CLS] great blue heron juvenile. [CLS] cultivation mesh cage."
+import numpy as np
 
-str_by_dot = str.split(".")
-for s in str_by_dot:
-   if '[CLS]' not in s:
-      print(s)
-print(len(str_by_dot)) 
+captions = ['the outstretched arm of a man holding wii controllers. cattle. haul truck. older man in a white shirt and black pants about to throw a frisbee. rightmost hot dog. cattle egret adult. \
+                wind turbine. jetski. a clock reading 8 : 50 on the left side of a wall. sunflower plant. shipping container lot.',
+                
+                'power line spacer. aircraft hangar. landslide. reddish egret flying. front loader/bulldozer.  \
+                great blue heron nest. trash/debris. power line insulator. great egret chick. mid-density smoke. tugboat. black-crowned night heron adult. low-density smoke. barge. shed.  \
+                roseat e spoonbill adult. maritime vessel. a red leather chair next to an end table with a box of tissues on it. the plane that is in focus. cng. white ibis chick. container crane. shipping container.  \
+                older man in a white shirt and black pants about to throw a frisbee. pool. vehicle lot. van. man standing with striped shirt. brown pelican in flight. great blue heron adult. ship. buffalo.  \
+                cable tower. there is a beige chair that has a pillow on it. buoy. quarry. young man in green eating a doughnut. crop. single sofa. wood. two types of fruits are placed in a square shaped container.  \
+                railway vehicle. locomotive. great egret flying. snowy egret. awning-tricycle. cargo car. green. vehicle. black skimmer adult. person. passenger vehicle.',
+                
+                'mixed tern flying. double-crested cormorant adult. container ship. quarry. pedestrian.  \
+                tank car. american oystercatcher. cargo car. lightly damaged tree. great blue heron nest. kayak. young man in green eating a doughnut. a red leather chair next to an end table with a box of tissues on it. cement mixer.  \
+                oil tanker. shed. maritime vessel. a woman in a white shirt painting a fire hydrant with her two friends. palm. groundgrader. weed. power line tower. reach stacker. brown pelican juvenile. power line damper.  \
+                truck w/liquid. great blue heron juvenile. bridge. storage tank. sugar beet plant. railway vehicle. utility truck. cargo truck. the top of a 3 - tier cake. a wooden chair with a young woman with her hair in a bun sitting in it. \
+                reddish egret adult. trash/debris. bird. game trail. ship. other bird. the pa keyboard on the right , in front. mid-density smoke. crabmeat in a box with other vegetables. a drink with ice in it. tower. haul truck. trailer. laughing gull juvenile. the plane that is in focus.']
+   
+processed =  ['[CLS] the outstretched arm of a man holding wii controllers. [CLS] cattle. [CLS] haul truck. [CLS] older man in a white shirt and black pants about to throw a frisbee. [CLS] rightmost hot dog. [CLS] cattle egret adult. [CLS] wind turbine. [CLS] jetski. [CLS] a clock reading 8 : 50 on the left side of a wall. [CLS] sunflower plant. [CLS] shipping container lot.', 
+                 '[CLS] power line spacer. [CLS] aircraft hangar. [CLS] landslide. [CLS] reddish egret flying. [CLS] front loader/bulldozer. [CLS] great blue heron nest. [CLS] trash/debris. [CLS] power line insulator. [CLS] great egret chick. [CLS] mid-density smoke. [CLS] tugboat. [CLS] black-crowned night heron adult. [CLS] low-density smoke. [CLS] barge. [CLS] shed. [CLS] roseat e spoonbill adult. [CLS] maritime vessel. [CLS] a red leather chair next to an end table with a box of tissues on it. [CLS] the plane that is in focus. [CLS] cng. [CLS] white ibis chick. [CLS] container crane. [CLS] shipping container. [CLS] older man in a white shirt and black pants about to throw a frisbee. [CLS] pool. [CLS] vehicle lot. [CLS] van. [CLS] man standing with striped shirt. [CLS] brown pelican in flight. [CLS] great blue heron adult. [CLS] ship. [CLS] buffalo. [CLS] cable tower. [CLS] there is a beige chair that has a pillow on it. [CLS] buoy. [CLS] quarry. [CLS] young man in green eating a doughnut. [CLS] crop. [CLS] single sofa. [CLS] wood. [CLS] two types of fruits are placed in a square shaped container. [CLS] railway vehicle. [CLS] locomotive. [CLS] great egret flying. [CLS] snowy egret. [CLS] awning-tricycle. [CLS] cargo car. [CLS] green. [CLS] vehicle. [CLS] black skimmer adult. [CLS] person. [CLS] passenger vehicle.', 
+                 '[CLS] mixed tern flying. [CLS] double-crested cormorant adult. [CLS] container ship. [CLS] quarry. [CLS] pedestrian. [CLS] tank car. [CLS] american oystercatcher. [CLS] cargo car. [CLS] lightly damaged tree. [CLS] great blue heron nest. [CLS] kayak. [CLS] young man in green eating a doughnut. [CLS] a red leather chair next to an end table with a box of tissues on it. [CLS] cement mixer. [CLS] oil tanker. [CLS] shed. [CLS] maritime vessel. [CLS] a woman in a white shirt painting a fire hydrant with her two friends. [CLS] palm. [CLS] groundgrader. [CLS] weed. [CLS] power line tower. [CLS] reach stacker. [CLS] brown pelican juvenile. [CLS] power line damper. [CLS] truck w/liquid. [CLS] great blue heron juvenile. [CLS] bridge. [CLS] storage tank. [CLS] sugar beet plant. [CLS] railway vehicle. [CLS] utility truck. [CLS] cargo truck. [CLS] the top of a 3 - tier cake. [CLS] a wooden chair with a young woman with her hair in a bun sitting in it. [CLS] reddish egret adult. [CLS] trash/debris. [CLS] bird. [CLS] game trail. [CLS] ship. [CLS] other bird. [CLS] the pa keyboard on the right , in front. [CLS] mid-density smoke. [CLS] crabmeat in a box with other vegetables. [CLS] a drink with ice in it. [CLS] tower. [CLS] haul truck. [CLS] trailer. [CLS] laughing gull juvenile. [CLS] the plane that is in focus.']
 
-str_by_cls = str.split("[CLS]")
-print(len(str_by_cls))
+tokenized = {'input_ids': np.array([[  101,  1996, 21059,  2849,  1997,  1037,  2158,  3173, 16568, 21257,
+          1012,   101,  7125,  1012,   101, 14655,  4744,  1012,   101,  3080,
+          2158,  1999,  1037,  2317,  3797,  1998,  2304,  6471,  2055,  2000,
+          5466,  1037, 10424,  2483, 11306,  1012,   101,  2157, 11800,  2980,
+          3899,  1012,   101,  7125,  1041, 17603,  2102,  4639,  1012,   101,
+          3612, 14027,  1012,   101,  9924,  3211,  1012,   101,  1037,  5119,
+          3752,  1022,  1024,  2753,  2006,  1996,  2187,  2217,  1997,  1037,
+          2813,  1012,   101,  3103, 14156,  3269,  1012,   101,  7829, 11661,
+          2843,  1012,     0,     0,     0,     0,     0,     0,     0,     0,
+             0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
+             0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
+             0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
+             0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
+             0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
+             0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
+             0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
+             0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
+             0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
+             0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
+             0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
+             0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
+             0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
+             0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
+             0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
+             0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
+             0,     0,     0,     0,     0,     0],
+        [  101,  2373,  2240,  2686,  2099,  1012,   101,  2948, 18284,  1012,
+           101, 20148,  1012,   101, 14182,  1041, 17603,  2102,  3909,  1012,
+           101,  2392,  7170,  2121,  1013,  7087,  3527,  6290,  1012,   101,
+          2307,  2630, 22914,  9089,  1012,   101, 11669,  1013, 11385,  1012,
+           101,  2373,  2240, 16021, 20350,  1012,   101,  2307,  1041, 17603,
+          2102, 14556,  1012,   101,  3054,  1011,  4304,  5610,  1012,   101,
+         12888, 11975,  1012,   101,  2304,  1011, 10249,  2305, 22914,  4639,
+          1012,   101,  2659,  1011,  4304,  5610,  1012,   101, 19398,  1012,
+           101,  8328,  1012,   101,  3123,  4017,  1041, 15642, 24457,  4639,
+          1012,   101,  7803,  6258,  1012,   101,  1037,  2417,  5898,  3242,
+          2279,  2000,  2019,  2203,  2795,  2007,  1037,  3482,  1997, 14095,
+          2006,  2009,  1012,   101,  1996,  4946,  2008,  2003,  1999,  3579,
+          1012,   101, 27166,  2290,  1012,   101,  2317, 21307,  2483, 14556,
+          1012,   101, 11661, 11308,  1012,   101,  7829, 11661,  1012,   101,
+          3080,  2158,  1999,  1037,  2317,  3797,  1998,  2304,  6471,  2055,
+          2000,  5466,  1037, 10424,  2483, 11306,  1012,   101,  4770,  1012,
+           101,  4316,  2843,  1012,   101,  3158,  1012,   101,  2158,  3061,
+          2007, 17983,  3797,  1012,   101,  2829, 21877, 19341,  2078,  1999,
+          3462,  1012,   101,  2307,  2630, 22914,  4639,  1012,   101,  2911,
+          1012,   101,  6901,  1012,   101,  5830,  3578,  1012,   101,  2045,
+          2003,  1037, 28799,  3242,  2008,  2038,  1037, 10005,  2006,  2009,
+          1012,   101, 20934,  6977,  1012,   101, 12907,  1012,   101,  2402,
+          2158,  1999,  2665,  5983,  1037, 23126, 24072,  1012,   101, 10416,
+          1012,   101,  2309, 10682,  1012,   101,  3536,  1012,   101,  2048,
+          4127,  1997, 10962,  2024,  2872,  1999,  1037,  2675,  5044, 11661,
+          1012,   101,  2737,  4316,  1012,   101],
+        [  101,  3816, 28774,  2078,  3909,  1012,   101,  3313,  1011, 25413,
+          2522, 10867, 18842,  2102,  4639,  1012,   101, 11661,  2911,  1012,
+           101, 12907,  1012,   101, 14662,  1012,   101,  4951,  2482,  1012,
+           101,  2137, 21480, 11266,  7474,  1012,   101,  6636,  2482,  1012,
+           101,  8217,  5591,  3392,  1012,   101,  2307,  2630, 22914,  9089,
+          1012,   101, 10905,  4817,  1012,   101,  2402,  2158,  1999,  2665,
+          5983,  1037, 23126, 24072,  1012,   101,  1037,  2417,  5898,  3242,
+          2279,  2000,  2019,  2203,  2795,  2007,  1037,  3482,  1997, 14095,
+          2006,  2009,  1012,   101, 11297, 23228,  1012,   101,  3514, 20135,
+          1012,   101,  8328,  1012,   101,  7803,  6258,  1012,   101,  1037,
+          2450,  1999,  1037,  2317,  3797,  4169,  1037,  2543, 26018,  3372,
+          2007,  2014,  2048,  2814,  1012,   101,  5340,  1012,   101,  2598,
+         24170,  2099,  1012,   101, 17901,  1012,   101,  2373,  2240,  3578,
+          1012,   101,  3362,  9991,  2121,  1012,   101,  2829, 21877, 19341,
+          2078, 11799,  1012,   101,  2373,  2240, 10620,  2121,  1012,   101,
+          4744,  1059,  1013,  6381,  1012,   101,  2307,  2630, 22914, 11799,
+          1012,   101,  2958,  1012,   101,  5527,  4951,  1012,   101,  5699,
+         10506,  2102,  3269,  1012,   101,  2737,  4316,  1012,   101,  9710,
+          4744,  1012,   101,  6636,  4744,  1012,   101,  1996,  2327,  1997,
+          1037,  1017,  1011,  7563,  9850,  1012,   101,  1037,  4799,  3242,
+          2007,  1037,  2402,  2450,  2007,  2014,  2606,  1999,  1037, 21122,
+          3564,  1999,  2009,  1012,   101, 14182,  1041, 17603,  2102,  4639,
+          1012,   101, 11669,  1013, 11385,  1012,   101,  4743,  1012,   101,
+          2208,  4446,  1012,   101,  2911,  1012,   101,  2060,  4743,  1012,
+           101,  1996,  6643,  9019,  2006,  1996,  2157,  1010,  1999,  2392,
+          1012,   101,  3054,  1011,  4304,  5610]]), 'token_type_ids': np.array([[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]), 'attention_mask': np.array([[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]]), 'special_tokens_mask': np.array([[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])}
 
-
-LISTA = [ 101,  1037, 29145,  3061,  1999,  1996, 
- 2599,  1997,  2093,  2060,                                                                                                                                                                       
-         29145,  2015,  1012,   101,  7965,  3392,  1012,   101,  7125,  1012,                                                                                                                    
-           101,  4189,  4576,  1012,   101,  4654,  3540, 22879,  2953,  1012,                                                                                                                    
-           101,  6174, 17980,  1012,   101, 10905,  4817,  1012,   101,  2829,                                                                                                                    
-         21877, 19341,  2078,  1011,  4777,  3659,  1012,   101,  5870, 19739,                                                                                                                    
-          3363,  4639,  1012,   101,  9710,  4744,  1012,   101,  2829, 21877,                                                                                                                    
-         19341,  2078,  1999,  3462,  1012,   101,  6636,  4946,  1012,   101,                                                                                                                    
-         13555,  1012,   101,  1037,  2630,  1011,  3753,  4743,  2559,  2000,                                                                                                                    
-          1996,  2157,  1012,   101,  4049,  1012,   101, 21154, 11937, 21218,                                                                                                                    
-          2015,  1012,   101,  2450,  2006,  7997,  2006,  2157,  4147,  2304,                                                                                                                    
-          2327,  1998,  2304,  6045,  1012,   101, 12187,  1012,   101,  5527,                                                                                                                    
-          4951,  1012,   101,  2307,  2630, 22914,  3909,  1012,   101,  1996,                                                                                                                    
-         21059,  2849,  1997,  1037,  2158,  3173, 16568, 21257,  1012,   101,                                                                                                                    
-          1996,  3756, 14757,  2006,  1996, 13972,  1005,  1055,  2157,  1012,                                                                                                                    
-           101,  5402,  1012,   101,  2317, 22822,  8458, 14182,  1041, 17603,                                                                                                                    
-          2102,  4639,  1012,   101, 10165,  1012,   101, 13987,  1012,   101,                                                                                                                    
-         11669,  1013, 11385,  1012,   101, 20148,  1012,   101,  1037,  2158,                                                                                                                    
-          4439,  1037,  4368,  2100,  2395,  7997,  1012,   101, 11661,  2911,                                                                                                                    
-          1012,   101, 13233, 14557,  3269,  1012,   101,  1996, 10165,  2008,                                                                                                                    
-          2003,  7541,  2000,  1996,  4950,  1012,   101,  4111,  1012,   101,                                                                                                                    
-         22091,  5582,  1011, 13012, 23490,  1012,   101,  4744,  1059,  1013,                                                                                                                    
-          6381,  1012,   101, 14175,  6277,  1012,   101,  2911,  1012,   101,                                                                                                                    
-          2829, 21877, 19341,  2078, 11799,  1012,   101, 20981,  1041, 17603,                                                                                                                    
-          2102,  1012,   101,  4316,  2843,  1012,   101,  2373,  2240,  5127,                                                                                                                    
-          1012,   101,  2307,  2630, 22914,  8288,  1012,   101, 14662,  1012,                                                                                                                    
-           101, 14182,  1041, 17603,  2102, 14556]
-
-print(LISTA.count(101))
-print(LISTA.count(1012))
+for i in range(3):
+   caption_count = captions[i].count('.') + 1
+   processed_count = processed[i].count('.') + 1
+   token_ids = tokenized['input_ids'][i]
+   
+   print(token_ids)
+   
+   print(f"len of token_ids[{i}] = {len(token_ids>0)}")
+   print(f"len of caption[{i}] = {caption_count}")
+   print(f"len of processed[{i}] = {processed_count}")
+   
