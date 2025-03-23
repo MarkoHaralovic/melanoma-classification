@@ -152,7 +152,8 @@ def train(args):
         ifw = "_ifw" if args.ifw else ""
         ohem = "_ohem" if args.ohem else ""
         recall_ce = "_recall_ce" if args.recall_ce else ""
-        run_name = f"{run_name}{ifw}{ohem}{recall_ce}"
+        amp = "_amp" if args.use_amp else ""
+        run_name = f"{run_name}{ifw}{ohem}{recall_ce}{amp}"
         
         args.output_dir = os.path.join(args.output_dir, run_name)
         os.makedirs(args.output_dir, exist_ok=True)
