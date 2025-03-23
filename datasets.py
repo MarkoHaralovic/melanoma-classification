@@ -219,7 +219,6 @@ class KaggleISICDataset(Dataset):
             image_name = image_name + '.jpg'
             
         image_path = os.path.join(self.image_dir, image_name)
-        image_path = os.path.join(self.image_dir, row['image_name'] + '.jpg')
         target = row['target']  
         group = row['group'] if 'group' in row.index else -1
         
