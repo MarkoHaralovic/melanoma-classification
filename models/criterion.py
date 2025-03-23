@@ -81,7 +81,7 @@ def labels_to_class_weights(samples, num_classes=2, alpha = 0.5):
    """
    labels = [sample[1] for sample in samples]
    class_counts = np.bincount(labels, minlength=num_classes)
-   logging.info(f"Class distribution: {class_counts}")
+   logging.info(f"Original (not oversampled) lass distribution: {class_counts}")
    
    weights = np.copy(class_counts)
    weights[weights == 0] = 1
@@ -90,5 +90,5 @@ def labels_to_class_weights(samples, num_classes=2, alpha = 0.5):
    
    weights = weights / weights.sum() 
    
-   logging.info(f"Class weights: {weights}")
+   logging.info(f"IFW class weights: {weights}")
    return torch.Tensor(weights)

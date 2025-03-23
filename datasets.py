@@ -146,7 +146,7 @@ def build_transform(is_train, args):
 
 
 class KaggleISICDataset(Dataset):
-    def __init__(self, csv_file, image_dir, skin_color_csv = None, transform=None, augment_transform = None,split='train', test_size=0.2, seed=42):
+    def __init__(self, csv_file, image_dir, skin_color_csv = None, transform=None, augment_transforms = None,split='train', test_size=0.2, seed=42):
         """
         Args:
             csv_file (str): Path to the CSV file containing image names and targets.
@@ -156,7 +156,7 @@ class KaggleISICDataset(Dataset):
                 - fitzpatrick_scale: The Fitzpatrick scale is a numerical classification schema for human skin color. 
                 - group : Each patient is classified into one of the groups based on his skin color type.
             transform (callable, optional): Optional transform to be applied on an image.
-            augment_transform (dict): Dictionary containing augmentations to be applied on malignant cases.
+            augment_transforms (dict): Dictionary containing augmentations to be applied on malignant cases.
             split (str): 'train' or 'valid', determines which subset to use.
             test_size (float): Proportion of the dataset to allocate for validation.
             seed (int): Random seed for reproducibility.
@@ -166,17 +166,24 @@ class KaggleISICDataset(Dataset):
         self.transform = transform
         self.split = split
         
-        self.augment_transforms = augment_transform
-        self.oversample_ratio = len(self.augment_transforms.keys())
-        
+        if augment_transforms is None:
+            self.augment_transforms = None
+            self.oversample_ratio = 1
+        else:
+            self.augment_transforms = augment_transforms
+            self.oversample_ratio = len(self.augment_transforms.keys())
+            
         if skin_color_csv is not None:
-            df = pd.read_csv(skin_color_csv) 
+            print(f"Skin color csv is defined. Using predefined train/valid splits.")
+            df = pd.read_csv(skin_color_csv, sep=';') 
+            train_df = df[df['split'] == "train"]
+            valid_df = df[df['split'] == "train"]
         else:
             df = pd.read_csv(csv_file)     
-              
-        train_df, valid_df = train_test_split(
+            train_df, valid_df = train_test_split(
             df, test_size=test_size, stratify=df['target'], random_state=seed
         )
+        
         
         self.data = train_df if split == 'train' else valid_df
 
@@ -188,17 +195,18 @@ class KaggleISICDataset(Dataset):
             self.samples = [(row['image_name'], row['target'], None ) for _, row in self.data.iterrows()]
             
         self.classes = 2  
-        self.class_distribution = (len(self.data[self.data['target'] == 0]), len(self.data[self.data['target'] == 1]) * self.oversample_ratio)
+        if self.augment_transforms is None:
+            self.class_distribution = (len(self.data[self.data['target'] == 0]), len(self.data[self.data['target'] == 1]))
+        else:
+            self.class_distribution = (len(self.data[self.data['target'] == 0]), len(self.data[self.data['target'] == 1]) * self.oversample_ratio)
 
     def __len__(self):
-        if self.split == 'train':
-            malignant_count = len(self.data[self.data['target'] == 1])
-            benign_count = len(self.data[self.data['target'] == 0])
-            return benign_count +  self.oversample_ratio * malignant_count  # Oversampling malignant cases
-        return len(self.data)
+        if self.augment_transforms is None or self.split != 'train':
+            return len(self.data)
+        return len(self.data[self.data['target'] == 0]) + self.oversample_ratio * len(self.data[self.data['target'] == 1])
 
     def __getitem__(self, idx):
-        if self.split == 'train':
+        if self.augment_transforms is not None and self.split == 'train':
             actual_idx = min(idx // self.oversample_ratio, len(self.data) - 1) if idx % self.oversample_ratio != 0 else min(idx, len(self.data) - 1)
             row = self.data.iloc[actual_idx]
             augment_type = list(self.augment_transforms.keys())[idx % self.oversample_ratio]
@@ -208,18 +216,19 @@ class KaggleISICDataset(Dataset):
 
         image_path = os.path.join(self.image_dir, row['image_name'] + '.jpg')
         target = row['target']  
+        group = row['group'] if 'group' in row.index else -1
         
         image = Image.open(image_path).convert('RGB')
 
-        if target == 1 and self.split == 'train':
+        if target == 1 and self.split == 'train' and self.augment_transforms is not None:
             image = self.augment_transforms[augment_type](image)
         if self.transform:
             image = self.transform(image)
 
-        return image, target
+        return image, target, group
     
 class LocalISICDataset(Dataset):
-    def __init__(self, root, transform = None, skin_color_csv = None, augment_transform = None, split = 'train'):
+    def __init__(self, root, transform = None, skin_color_csv = None, augment_transforms = None, split = 'train'):
         """
         Args:
             root (str or ``pathlib.Path``): Root directory path.
@@ -229,15 +238,19 @@ class LocalISICDataset(Dataset):
                 - ita: The individual typology angle (ITA) is a measure of the skin's reaction to sun exposure. 
                 - fitzpatrick_scale: The Fitzpatrick scale is a numerical classification schema for human skin color. 
                 - group : Each patient is classified into one of the groups based on his skin color type.
-            augment_transform (dict): Dictionary containing augmentations to be applied on malignant cases.
+            augment_transforms (dict): Dictionary containing augmentations to be applied on malignant cases.
         """
         
         self.root = root
         self.transform = transform
         self.split = split
         
-        self.augment_transforms = augment_transform
-        self.oversample_ratio = len(self.augment_transforms.keys())
+        if augment_transforms is None:
+            self.augment_transforms = None
+            self.oversample_ratio = 1  
+        else:
+            self.augment_transforms = augment_transforms
+            self.oversample_ratio = len(self.augment_transforms.keys())
         
         split_dir = os.path.join(self.root, split)
         benign_dir = os.path.join(split_dir, 'benign')
@@ -256,33 +269,41 @@ class LocalISICDataset(Dataset):
         self.benign_count = len(benign_images)
         self.malignant_count = len(malignant_images)
         self.classes = 2
-        self.class_distribution = (self.benign_count, self.malignant_count * self.oversample_ratio)
+        if self.augment_transforms is None:
+            self.class_distribution = (self.benign_count, self.malignant_count)
+        else:
+            self.class_distribution = (self.benign_count, self.malignant_count * self.oversample_ratio)
         
         if skin_color_csv is not None:
-            self.skin_data = pd.read_csv(skin_color_csv)
+            self.skin_data = pd.read_csv(skin_color_csv, sep=';')
             self.samples_with_skin = []
+            skin_info_dict = {}
+            for _, row in self.skin_data.iterrows():
+                img_name = row['image_name']
+                if 'group' in self.skin_data.columns:
+                    skin_info_dict[img_name] = row['group']
             for path, label in self.samples:
-                img_id = os.path.splitext(os.path.basename(path))[0]
-                skin_info = self.skin_data[self.skin_data['image_name'] == img_id]
-                if not skin_info.empty:
-                    group = skin_info.iloc[0]['group'] if 'group' in skin_info.columns else None
-                    self.samples_with_skin.append((path, label, group))
+                img_filename = os.path.basename(path)
+                
+                if img_filename in skin_info_dict:
+                    self.samples_with_skin.append((path, label, skin_info_dict[img_filename]))
                 else:
-                    self.samples_with_skin.append((path, label, None))
-            
+                    missing_count += 1
+                    self.samples_with_skin.append((path, label, -1))
+    
             self.samples = self.samples_with_skin
-            
             if skin_color_csv is not None:
-                self.groups =  len(self.data['group'].unique())
-                self.group = self.data['group'].value_counts()
+                self.groups =  len(self.skin_data['group'].unique())
+                self.group = self.skin_data['group'].value_counts()
     
     def __len__(self):
+        if self.augment_transforms is None or self.split != 'train':
+            return len(self.samples)
         if self.split == 'train':
             return self.benign_count + self.malignant_count * self.oversample_ratio
-        return len(self.samples)
     
     def __getitem__(self, idx):
-        if self.split == 'train' and idx >= self.benign_count:
+        if self.augment_transforms is not None and self.split == 'train' and idx >= self.benign_count:
             adjusted_idx = self.benign_count + ((idx - self.benign_count) // self.oversample_ratio)
             augment_type_idx = (idx - self.benign_count) % self.oversample_ratio
             augment_type = list(self.augment_transforms.keys())[augment_type_idx]
@@ -294,17 +315,18 @@ class LocalISICDataset(Dataset):
             augment_type = "original"
         
         if isinstance(self.samples[adjusted_idx], tuple) and len(self.samples[adjusted_idx]) == 3:
-            image_path, target, _ = self.samples[adjusted_idx]
+            image_path, target, group = self.samples[adjusted_idx]
         else:
             image_path, target = self.samples[adjusted_idx]
+            group = -1
             
         image = Image.open(image_path).convert('RGB')
         
-        if target == 1 and self.split == 'train' and augment_type != "original":
+        if target == 1 and self.split == 'train' and augment_type != "original" and self.augment_transforms is not None:
             image = self.augment_transforms[augment_type](image)
             
         if self.transform:
             image = self.transform(image)
             
-        return image, target
+        return image, target, group
        

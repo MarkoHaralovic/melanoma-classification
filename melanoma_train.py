@@ -7,8 +7,6 @@ import torch.nn as nn
 import torch.backends.cudnn as cudnn
 import json
 import os
-import sys
-from pathlib import Path
 
 from timm.data.mixup import Mixup
 from timm.loss import LabelSmoothingCrossEntropy, SoftTargetCrossEntropy
@@ -49,17 +47,18 @@ def str2bool(v):
         raise argparse.ArgumentTypeError('Boolean value expected.')
 
 def train(args):
-    train_dir = os.path.join(args.data_path, 'train')
-    valid_dir = os.path.join(args.data_path, 'valid')
-    logging.info(f"Train directory: {train_dir}")
-    logging.info(f"Valid directory: {valid_dir}")
+    if not args.kaggle:
+        train_dir = os.path.join(args.data_path, 'train')
+        valid_dir = os.path.join(args.data_path, 'valid')
+        logging.info(f"Train directory: {train_dir}")
+        logging.info(f"Valid directory: {valid_dir}")
     
-    if not os.path.exists(train_dir):
-        raise FileNotFoundError(f"Train directory not found: {train_dir}")
-    
-    if not os.path.exists(valid_dir):
-        raise FileNotFoundError(f"Valid directory not found: {valid_dir}")
-    
+        if not os.path.exists(train_dir):
+            raise FileNotFoundError(f"Train directory not found: {train_dir}")
+        
+        if not os.path.exists(valid_dir):
+            raise FileNotFoundError(f"Valid directory not found: {valid_dir}")
+        
     device = torch.device(args.device if torch.cuda.is_available() else "cpu")
     logging.info(f"Using device: {device}")
     
@@ -82,7 +81,6 @@ def train(args):
     }
         
     if not args.kaggle:
-   
         train_dataset = LocalISICDataset(args.data_path, 
                                          transform=transform,
                                          augment_transforms = malignant_class_transform,
@@ -151,6 +149,10 @@ def train(args):
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         model_name = args.model
         run_name = f"{timestamp}_{model_name}_bs{args.batch_size}"
+        ifw = "_ifw" if args.ifw else ""
+        ohem = "_ohem" if args.ohem else ""
+        recall_ce = "_recall_ce" if args.recall_ce else ""
+        run_name = f"{run_name}{ifw}{ohem}{recall_ce}"
         
         args.output_dir = os.path.join(args.output_dir, run_name)
         os.makedirs(args.output_dir, exist_ok=True)
@@ -180,8 +182,8 @@ def train(args):
     model_without_ddp = model
     n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
 
-    print("Model = %s" % str(model_without_ddp))
-    logging.info('number of params:', n_parameters)
+    # print("Model = %s" % str(model_without_ddp))
+    logging.info(f"number of params: {n_parameters}")
     
     model_ema = None
     if args.model_ema:
@@ -356,7 +358,9 @@ if __name__ == '__main__':
                         help='Path to the CSV file containing image names and labels on Kaggle')
     parser.add_argument('--kaggle_image_dir', default=r"/kaggle/input/siim-isic-melanoma-classification/jpeg/train", type=str,
                         help='Path to the folder with images on Kaggle')
-
+    parser.add_argument('--skin_color_csv', default=None, type=str,
+                        help='Path to the CSV file containing skin color labels')
+    
     parser.add_argument('--data_path', default='./isic2020_challenge', type=str,
                         help='Path to dataset with train/valid folders')
     parser.add_argument('--output_dir', default='./melanoma_output', type=str,
