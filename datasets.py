@@ -221,7 +221,6 @@ class KaggleISICDataset(Dataset):
         image_path = os.path.join(self.image_dir, image_name)
         target = row['target']  
         group = row['group'] if 'group' in row.index else -1
-        
         image = Image.open(image_path).convert('RGB')
 
         if target == 1 and self.split == 'train' and self.augment_transforms is not None:
@@ -286,14 +285,16 @@ class LocalISICDataset(Dataset):
                 img_name = row['image_name']
                 if 'group' in self.skin_data.columns:
                     skin_info_dict[img_name] = row['group']
+                    
+            missing = 0
             for path, label in self.samples:
                 img_filename = os.path.basename(path)
                 
                 if img_filename in skin_info_dict:
                     self.samples_with_skin.append((path, label, skin_info_dict[img_filename]))
                 else:
-                    missing_count += 1
-                    self.samples_with_skin.append((path, label, -1))
+                    missing+=1
+            print(f"Total images in dirs not present in the csv: {missing}")
     
             self.samples = self.samples_with_skin
             if skin_color_csv is not None:
@@ -333,4 +334,7 @@ class LocalISICDataset(Dataset):
             image = self.transform(image)
             
         return image, target, group
+
+    def get_class_distribution(self):
+        return self.class_distribution
        

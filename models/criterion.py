@@ -75,20 +75,66 @@ class RecallCrossEntropy(nn.Module):
       
       return loss.mean()
         
-def labels_to_class_weights(samples, num_classes=2, alpha = 0.5):
+def labels_to_class_weights(samples, ifw_by_skin_type = False, num_classes=2, alpha=0.5, beta=0.5):
    """
-   Calculate class weights based on class frequencies in the dataset
-   """
-   labels = [sample[1] for sample in samples]
-   class_counts = np.bincount(labels, minlength=num_classes)
-   logging.info(f"Original (not oversampled) lass distribution: {class_counts}")
+   Calculate class weights based on class frequencies in the dataset, taking into account both
+   targets and skin color types. Higher weights are assigned to rare combinations.
    
-   weights = np.copy(class_counts)
-   weights[weights == 0] = 1
-   
-   weights = 1.0 / weights * alpha 
-   
-   weights = weights / weights.sum() 
-   
-   logging.info(f"IFW class weights: {weights}")
+   Args:
+      samples: Dataset samples with (path, target, skin_color)
+      num_classes: Number of target classes
+      alpha: Weight for inverse frequency weighting
+      beta: Additional weight factor for rare skin colors with malignant samples
+    """
+   if not ifw_by_skin_type:
+      labels = [sample[1] for sample in samples]
+    
+      class_counts = np.bincount(labels, minlength=num_classes)
+      logging.info(f"Original (not oversampled) benign/malignant class distribution: {class_counts}")
+      
+      weights = np.copy(class_counts)
+      weights[weights == 0] = 1
+      weights = 1.0 / weights * alpha
+      
+   else:
+      unique_skin_colors = set()
+      for sample in samples:
+         unique_skin_colors.add(sample[2])
+      
+      skin_color_mapping = {color: idx for idx, color in enumerate(unique_skin_colors)}
+      num_skin_colors = len(unique_skin_colors)
+      logging.info(f"Found skin color types: {skin_color_mapping}")
+      
+      skin_colors = [skin_color_mapping[sample[2]] for sample in samples]
+      skin_color_counts = np.bincount(skin_colors, minlength=num_skin_colors) 
+      logging.info(f"Original (not oversampled) skin color class distribution: {skin_color_counts}")
+      
+      combined_features = [(sample[1], skin_color_mapping[sample[2]]) for sample in samples]
+      unique_combinations = set(combined_features)
+      
+      combination_counts = {}
+      for combo in unique_combinations:
+         combination_counts[combo] = combined_features.count(combo)
+      
+      logging.info(f"Target-skin color combination counts: {combination_counts}")
+      
+      class_weights = np.zeros(num_classes * num_skin_colors)
+      
+      for combo in unique_combinations:
+         target, skin_color = combo
+         combo_count = combination_counts[combo]
+         combo_idx = target * num_skin_colors + skin_color
+         
+         weight_value = 1.0 / max(combo_count, 1)
+         
+         if target == 1:
+               weight_value *= (1.0 + beta)
+               
+         class_weights[combo_idx] = weight_value
+      
+      class_weights[class_weights == 0] = 0.01
+      
+      weights = class_weights / class_weights.sum()
+
+   logging.info(f"Final class weights: {weights}")
    return torch.Tensor(weights)

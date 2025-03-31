@@ -129,7 +129,6 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
             if use_amp:
                 wandb_logger._wandb.log({'Rank-0 Batch Wise/train_grad_norm': grad_norm}, commit=False)
             wandb_logger._wandb.log({'Rank-0 Batch Wise/global_train_step': it})
-            
 
     # gather the stats from all processes
     metric_logger.synchronize_between_processes()
@@ -142,7 +141,11 @@ def evaluate(data_loader, model, device, use_amp=False):
 
     metric_logger = utils.MetricLogger(delimiter="  ")
     header = 'Test:'
-
+    
+    y_true = []
+    y_pred = []
+    groups = []
+    
     # switch to evaluation mode
     model.eval()
     for batch in metric_logger.log_every(data_loader, 10, header):
@@ -156,22 +159,29 @@ def evaluate(data_loader, model, device, use_amp=False):
         
         # compute output
         if use_amp:
-            with torch.cuda.amp.autocast():
+            with torch.amp.autocast("cuda"):
                 output = model(images)
                 loss = criterion(output, target)
         else:
             output = model(images)
             loss = criterion(output, target)
 
-        acc1, acc5 = accuracy(output, target, topk=(1, 5))
+        preds = utils._eval(output, target)
+        y_true.extend(target.cpu().tolist())
+        y_pred.extend(preds.cpu().tolist())
+        groups.extend(group.cpu().tolist())
+        
+        acc1 = accuracy(output, target, topk=(1))
 
         batch_size = images.shape[0]
         metric_logger.update(loss=loss.item())
         metric_logger.meters['acc1'].update(acc1.item(), n=batch_size)
-        metric_logger.meters['acc5'].update(acc5.item(), n=batch_size)
+        
     # gather the stats from all processes
     metric_logger.synchronize_between_processes()
-    print('* Acc@1 {top1.global_avg:.3f} Acc@5 {top5.global_avg:.3f} loss {losses.global_avg:.3f}'
-          .format(top1=metric_logger.acc1, top5=metric_logger.acc5, losses=metric_logger.loss))
+    print('* Global acc@1 {top1.global_avg:.3f} loss {losses.global_avg:.3f}'
+          .format(top1=metric_logger.acc1, losses=metric_logger.loss))
 
+    acc, f1, precision, recall = utils.get_metrics(y_true, y_pred, group)
+    
     return {k: meter.global_avg for k, meter in metric_logger.meters.items()}

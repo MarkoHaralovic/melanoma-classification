@@ -10,7 +10,7 @@ fi
 
 python melanoma_train.py \
       --data_path "C:/lumen_melanoma_classification/melanoma-classification/isic2020_challenge" \
-      --skin_color_csv "C:/lumen_melanoma_classification/isic2020_challenge/ISIC_2020_full.csv" \
+      --skin_color_csv "C:/lumen_melanoma_classification/melanoma-classification/isic2020_challenge/ISIC_2020_full.csv" \
       --model convnext_tiny \
       --batch_size 8 \
       --epochs 10 \
@@ -26,4 +26,6 @@ python melanoma_train.py \
       --mixup 0.0 \
       --update_freq 1 \
       --ohem \
-      --ifw
+      --ifw \
+      --test \
+      --resume C:\lumen_melanoma_classification\melanoma-classification\melanoma_classifier_output\20250322_183448_convnext_tiny_bs64_ifw_ohem\best_model.pth

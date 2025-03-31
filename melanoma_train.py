@@ -85,27 +85,32 @@ def train(args):
                                          transform=transform,
                                          augment_transforms = malignant_class_transform,
                                          split='train',
-                                         skin_color_csv=args.skin_color_csv)
+                                         skin_color_csv=args.skin_color_csv
+                                         )
+
         
         val_dataset = LocalISICDataset(args.data_path, 
                                          transform=transform,
                                          augment_transforms = None,
                                          split='valid',
-                                         skin_color_csv=args.skin_color_csv)
+                                         skin_color_csv=args.skin_color_csv
+                                         )
     else:
         train_dataset = KaggleISICDataset(args.kaggle_csv_file, 
                                     args.kaggle_image_dir, 
                                     args.skin_color_csv,
                                     transform=transform,
                                     augment_transforms = malignant_class_transform,
-                                    split='train')
+                                    split='train'
+                                    )
 
         val_dataset = KaggleISICDataset(args.kaggle_csv_file,
                                   args.kaggle_image_dir, 
                                   args.skin_color_csv,
                                   transform=transform, 
                                   augment_transforms = malignant_class_transform,
-                                  split='valid')
+                                  split='valid'
+                                  )
         
         
     logging.info(f"Train dataset size: {len(train_dataset)}")
@@ -242,7 +247,7 @@ def train(args):
     logging.info(f"Max WD = {max(wd_schedule_values):.7f}, Min WD = {min(wd_schedule_values):.7f}")
     
     if args.ifw:
-        class_weights = labels_to_class_weights(train_dataset.samples, args.num_classes, alpha = 0.5)
+        class_weights = labels_to_class_weights(train_dataset.samples,num_classes = args.num_classes, ifw_by_skin_type = True, alpha = 0.5)
         class_weights = class_weights.to(device)  
     else:
         class_weights = torch.ones(args.num_classes, device=device) 
@@ -275,6 +280,12 @@ def train(args):
             logging.info(f"Loaded checkpoint '{args.resume}' (epoch {args.start_epoch-1})")
         else:
             logging.info(f"No checkpoint found at: {args.resume}")
+            
+    if args.test:
+        model.eval()
+        test_stats = evaluate(val_loader, model, device, use_amp=args.use_amp)
+        logging.info(f"Validation accuracy: {test_stats['acc1']:.2f}%")
+        return
     
     max_accuracy = 0.0
     best_epoch = 0
@@ -380,6 +391,10 @@ if __name__ == '__main__':
                         help='Input image size')
     parser.add_argument('--drop_path', type=float, default=0.1,
                         help='Drop path rate')
+    
+    # Perform evaluation only    
+    parser.add_argument('--test', action='store_true', default=False,
+                        help='Perform evaluation only')
     
     # Training parameter
     parser.add_argument('--batch_size', default=16, type=int,

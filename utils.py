@@ -22,6 +22,7 @@ import torch.distributed as dist
 from math import inf
 
 from tensorboardX import SummaryWriter
+from fairlearn.metrics import demographic_parity_difference
 
 class SmoothedValue(object):
     """Track a series of values and provide access to smoothed values over a
@@ -505,3 +506,83 @@ def auto_load_model(args, model, model_without_ddp, optimizer, loss_scaler, mode
             if 'scaler' in checkpoint:
                 loss_scaler.load_state_dict(checkpoint['scaler'])
             logging.info("With optim & sched!")
+
+def _eval(output, target, topk=(1,)):
+    """Computes the accuracy over the k top predictions for the specified values of k"""
+    maxk = min(max(topk), output.size()[1])
+    batch_size = target.size(0)
+    _, pred = output.topk(maxk, 1, True, True)
+    pred = pred.t()
+    return pred
+
+def get_metrics(y_true, y_pred, groups):
+    """
+        y_true: list of true labels
+        y_pred: list of predicted labels
+        groups: list of skin type groups
+    """
+    y_pred = torch.tensor(y_pred).to(torch.int64)
+    y_true = torch.tensor(y_true).to(torch.int64)
+    groups = torch.tensor(groups).to(torch.int64)
+    
+    correct = y_pred.eq(y_true.reshape(1, -1).expand_as(y_pred))
+    
+    global_acc = correct.float().sum() * 100. / y_true.size(0)
+    print("Global accuracy: ", global_acc.item())
+    
+    tp = ((y_pred == 1) & (y_true == 1)).sum().item()
+    fp = ((y_pred == 1) & (y_true == 0)).sum().item()
+    tn = ((y_pred == 0) & (y_true == 0)).sum().item()
+    fn = ((y_pred == 0) & (y_true == 1)).sum().item()
+    
+    confusion_matrix = {
+        'TP': tp,
+        'FP': fp,
+        'TN': tn,
+        'FN': fn
+    }
+    print("Confusion Matrix: ", confusion_matrix)
+    
+    malignant = y_true == 1
+    benign = y_true == 0
+    
+    malignant_recall = tp / (tp + fn + 1e-10) 
+    malignant_precision = tp / (tp + fp) 
+    malignant_f1 = 2 * malignant_precision * malignant_recall / (malignant_precision + malignant_recall + 1e-10) 
+    
+    print(f"Malignant recall: {malignant_recall:.4f}")
+    print(f"Malignant precision: {malignant_precision:.4f}")
+    print(f"Malignant F1: {malignant_f1:.4f}")
+    
+    benign_recall = tn / (tn + fp + 1e-10)
+    benign_precision = tn / (tn + fn + 1e-10) 
+    benign_f1 = 2 * benign_precision * benign_recall / (benign_precision + benign_recall + 1e-10)
+    
+    print("benign precision: ", benign_precision.item())
+    print("benign f1: ", benign_f1.item())
+    
+    dpd = demographic_parity_difference(y_true, y_pred, sensitive_features=groups)
+    print("Demographic parity difference: ", dpd.item())
+     
+    for _group in torch.unique(groups):
+        group_y_pred = y_pred[groups == _group]
+        group_y_true = y_true[groups == _group]
+        
+        group_tp = ((group_y_pred == 1) & (group_y_true == 1)).sum().item()
+        group_fp = ((group_y_pred == 1) & (group_y_true == 0)).sum().item()
+        group_tn = ((group_y_pred == 0) & (group_y_true == 0)).sum().item()
+        group_fn = ((group_y_pred == 0) & (group_y_true == 1)).sum().item()
+        
+        group_malignant_recall = group_tp / (group_tp + group_fn + 1e-10) 
+        group_malignant_precision = group_tp / (group_tp + group_fp + 1e-10)
+        group_malignant_f1 = 2 * group_malignant_precision * group_malignant_recall / (group_malignant_precision + group_malignant_recall + 1e-10)
+        print(f"\nEVALUATION FOR GROUP {_group.item()}:")
+        print(f"   Group size: {group_y_true.shape[0]} samples")
+        print(f"   Group TP: {group_tp}, FP: {group_fp}, TN: {group_tn}, FN: {group_fn}")
+        print(f"   Group malignant recall: {group_malignant_recall:.4f}")
+        print(f"   Group malignant precision: {group_malignant_precision:.4f}")
+        print(f"   Group malignant F1: {group_malignant_f1:.4f}")
+        print("-----------------------------------------------------------------------")
+    
+    
+    
