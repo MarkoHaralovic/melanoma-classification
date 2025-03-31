@@ -166,13 +166,13 @@ def evaluate(data_loader, model, device, use_amp=False):
             output = model(images)
             loss = criterion(output, target)
 
-        preds = utils._eval(output, target)
+        preds = utils._eval(output, target)[0]
         y_true.extend(target.cpu().tolist())
         y_pred.extend(preds.cpu().tolist())
         groups.extend(group.cpu().tolist())
         
-        acc1 = accuracy(output, target, topk=(1))
-
+        acc1 = accuracy(output, target, topk=(1,5))[0]
+        
         batch_size = images.shape[0]
         metric_logger.update(loss=loss.item())
         metric_logger.meters['acc1'].update(acc1.item(), n=batch_size)
@@ -182,6 +182,6 @@ def evaluate(data_loader, model, device, use_amp=False):
     print('* Global acc@1 {top1.global_avg:.3f} loss {losses.global_avg:.3f}'
           .format(top1=metric_logger.acc1, losses=metric_logger.loss))
 
-    acc, f1, precision, recall = utils.get_metrics(y_true, y_pred, group)
+    utils.print_metrics(y_true, y_pred, groups)
     
     return {k: meter.global_avg for k, meter in metric_logger.meters.items()}

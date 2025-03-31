@@ -122,14 +122,14 @@ def train(args):
         logging.info(f"Train dataset groups: {train_dataset.groups}")
         logging.info(f"Train dataset group distribution: {train_dataset.group}")
             
-    logging.info(f"Validation dataset size: {len(train_dataset)}")
-    logging.info(f"Validation dataset classes: {train_dataset.classes}")
-    logging.info(f"Validation dataset class_distribution: {train_dataset.class_distribution}")
-    logging.info(f"Validation dataset oversample_ratio: {train_dataset.oversample_ratio}")
+    logging.info(f"Validation dataset size: {len(val_dataset)}")
+    logging.info(f"Validation dataset classes: {val_dataset.classes}")
+    logging.info(f"Validation dataset class_distribution: {val_dataset.class_distribution}")
+    logging.info(f"Validation dataset oversample_ratio: {val_dataset.oversample_ratio}")
     
     if args.skin_color_csv is not None:
-        logging.info(f"Validation dataset groups: {train_dataset.groups}")
-        logging.info(f"Validation dataset group distribution: {train_dataset.group}")
+        logging.info(f"Validation dataset groups: {val_dataset.groups}")
+        logging.info(f"Validation dataset group distribution: {val_dataset.group}")
         
     train_loader = torch.utils.data.DataLoader(
         train_dataset,

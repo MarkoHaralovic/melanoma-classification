@@ -294,7 +294,6 @@ class LocalISICDataset(Dataset):
                     self.samples_with_skin.append((path, label, skin_info_dict[img_filename]))
                 else:
                     missing+=1
-            print(f"Total images in dirs not present in the csv: {missing}")
     
             self.samples = self.samples_with_skin
             if skin_color_csv is not None:
