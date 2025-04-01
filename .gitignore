@@ -7,3 +7,4 @@ ckpt/
 /log_dir
 melanoma_classifier_output
 isic2020_challenge
+preparer/*

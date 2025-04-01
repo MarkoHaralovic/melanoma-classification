@@ -528,7 +528,7 @@ def print_metrics(y_true, y_pred, groups):
     correct = y_pred.eq(y_true)
     
     global_acc = correct.float().sum() * 100. / y_true.size(0)
-    print("Global accuracy: ", global_acc.item())
+    logging.info("Global accuracy: ", global_acc.item())
     
     tp = ((y_pred == 1) & (y_true == 1)).sum().item()
     fp = ((y_pred == 1) & (y_true == 0)).sum().item()
@@ -541,7 +541,7 @@ def print_metrics(y_true, y_pred, groups):
         'TN': tn,
         'FN': fn
     }
-    print("Confusion Matrix: ", confusion_matrix)
+    logging.info("Confusion Matrix: ", confusion_matrix)
     
     malignant = y_true == 1
     benign = y_true == 0
@@ -550,26 +550,33 @@ def print_metrics(y_true, y_pred, groups):
     malignant_precision = tp / (tp + fp + 1e-10) 
     malignant_f1 = 2 * malignant_precision * malignant_recall / (malignant_precision + malignant_recall + 1e-10) 
     
-    print(f"Malignant recall: {malignant_recall:.4f}")
-    print(f"Malignant precision: {malignant_precision:.4f}")
-    print(f"Malignant F1: {malignant_f1:.4f}")
+    logging.info(f"Malignant recall: {malignant_recall:.4f}")
+    logging.info(f"Malignant precision: {malignant_precision:.4f}")
+    logging.info(f"Malignant F1: {malignant_f1:.4f}")
 
     benign_recall = tn / (tn + fp + 1e-10)
     benign_precision = tn / (tn + fn + 1e-10) 
     benign_f1 = 2 * benign_precision * benign_recall / (benign_precision + benign_recall + 1e-10)
     
-    print("benign precision: ", benign_precision)
-    print("benign f1: ", benign_f1)
+    logging.info("benign precision: ", benign_precision)
+    logging.info("benign f1: ", benign_f1)
     
     try:
-        dpd = demographic_parity_difference(
+        overall_dpd = demographic_parity_difference(
                 y_true = y_true.cpu().numpy(), 
                 y_pred = y_pred.cpu().numpy(), 
                 sensitive_features = groups.cpu().numpy()
             )
-        print("Demographic parity difference: ", dpd.item())
+        logging.info("Demographic parity difference on the whole dataset: ", overall_dpd.item())
+        
+        malignant_dpd = demographic_parity_difference(
+                y_true = y_true[malignant].cpu().numpy(), 
+                y_pred = y_pred[malignant].cpu().numpy(), 
+                sensitive_features = groups[malignant].cpu().numpy()
+            )
+        logging.info("Demographic parity difference on malignant subset: ", malignant_dpd.item())
     except Exception as e:
-        print("Error calculating demographic parity difference: ", e)
+        logging.error("Error calculating demographic parity difference: ", e)
      
     for _group in torch.unique(groups):
         group_y_pred = y_pred[groups == _group]
@@ -583,13 +590,13 @@ def print_metrics(y_true, y_pred, groups):
         group_malignant_recall = group_tp / (group_tp + group_fn + 1e-10) 
         group_malignant_precision = group_tp / (group_tp + group_fp + 1e-10)
         group_malignant_f1 = 2 * group_malignant_precision * group_malignant_recall / (group_malignant_precision + group_malignant_recall + 1e-10)
-        print(f"\nEVALUATION FOR GROUP {_group.item()}:")
-        print(f"   Group size: {group_y_true.shape[0]} samples")
-        print(f"   Group TP: {group_tp}, FP: {group_fp}, TN: {group_tn}, FN: {group_fn}")
-        print(f"   Group malignant recall: {group_malignant_recall:.4f}")
-        print(f"   Group malignant precision: {group_malignant_precision:.4f}")
-        print(f"   Group malignant F1: {group_malignant_f1:.4f}")
-        print("-----------------------------------------------------------------------")
+        logging.info(f"\nEVALUATION FOR GROUP {_group.item()}:")
+        logging.info(f"   Group size: {group_y_true.shape[0]} samples")
+        logging.info(f"   Group TP: {group_tp}, FP: {group_fp}, TN: {group_tn}, FN: {group_fn}")
+        logging.info(f"   Group malignant recall: {group_malignant_recall:.4f}")
+        logging.info(f"   Group malignant precision: {group_malignant_precision:.4f}")
+        logging.info(f"   Group malignant F1: {group_malignant_f1:.4f}")
+        logging.info("-----------------------------------------------------------------------")
     
     
     
