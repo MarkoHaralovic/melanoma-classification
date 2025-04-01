@@ -528,7 +528,7 @@ def print_metrics(y_true, y_pred, groups):
     correct = y_pred.eq(y_true)
     
     global_acc = correct.float().sum() * 100. / y_true.size(0)
-    logging.info("Global accuracy: ", global_acc.item())
+    logging.info(f"Global accuracy: {global_acc.item()}")
     
     tp = ((y_pred == 1) & (y_true == 1)).sum().item()
     fp = ((y_pred == 1) & (y_true == 0)).sum().item()
@@ -558,8 +558,8 @@ def print_metrics(y_true, y_pred, groups):
     benign_precision = tn / (tn + fn + 1e-10) 
     benign_f1 = 2 * benign_precision * benign_recall / (benign_precision + benign_recall + 1e-10)
     
-    logging.info("benign precision: ", benign_precision)
-    logging.info("benign f1: ", benign_f1)
+    logging.info(f"benign precision: {benign_precision}")
+    logging.info(f"benign f1: {benign_f1}")
     
     try:
         overall_dpd = demographic_parity_difference(
@@ -567,14 +567,14 @@ def print_metrics(y_true, y_pred, groups):
                 y_pred = y_pred.cpu().numpy(), 
                 sensitive_features = groups.cpu().numpy()
             )
-        logging.info("Demographic parity difference on the whole dataset: ", overall_dpd.item())
+        logging.info(f"Demographic parity difference on the whole dataset: {overall_dpd.item()}")
         
         malignant_dpd = demographic_parity_difference(
                 y_true = y_true[malignant].cpu().numpy(), 
                 y_pred = y_pred[malignant].cpu().numpy(), 
                 sensitive_features = groups[malignant].cpu().numpy()
             )
-        logging.info("Demographic parity difference on malignant subset: ", malignant_dpd.item())
+        logging.info(f"Demographic parity difference on malignant subset: {malignant_dpd.item()}")
     except Exception as e:
         logging.error("Error calculating demographic parity difference: ", e)
      

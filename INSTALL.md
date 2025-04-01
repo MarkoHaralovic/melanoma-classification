@@ -1,6 +1,6 @@
 # Installation
 
-We provide installation instructions for ImageNet classification experiments here.
+We provide installation instructions.
 
 ## Dependency Setup
 Create an new conda virtual environment
@@ -9,24 +9,16 @@ conda create -n convnext python=3.8 -y
 conda activate convnext
 ```
 
-Install [Pytorch](https://pytorch.org/)>=1.8.0, [torchvision](https://pytorch.org/vision/stable/index.html)>=0.9.0 following official instructions. For example:
+Run:
 ```
-pip install torch==1.8.0+cu111 torchvision==0.9.0+cu111 -f https://download.pytorch.org/whl/torch_stable.html
+pip install -r requirements.txt
 ```
-
-Clone this repo and install required packages:
-```
-git clone https://github.com/facebookresearch/ConvNeXt
-pip install timm==0.3.2 tensorboardX six
-```
-
-The results in the paper are produced with `torch==1.8.0+cu111 torchvision==0.9.0+cu111 timm==0.3.2`.
 
 ## Dataset Preparation
 
-Download the [ImageNet-1K](http://image-net.org/) classification dataset and structure the data as follows:
+Download the [isic2020_challenge](link) classification dataset and structure the data as follows:
 ```
-/path/to/imagenet-1k/
+/path/to/isic2020_challenge/
   train/
     class1/
       img1.jpeg
@@ -39,15 +31,3 @@ Download the [ImageNet-1K](http://image-net.org/) classification dataset and str
       img4.jpeg
 ```
 
-For pre-training on [ImageNet-22K](http://image-net.org/), download the dataset and structure the data as follows:
-```
-/path/to/imagenet-22k/
-  class1/
-    img1.jpeg
-  class2/
-    img2.jpeg
-  class3/
-    img3.jpeg
-  class4/
-    img4.jpeg
-```
