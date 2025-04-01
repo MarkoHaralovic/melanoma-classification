@@ -182,6 +182,11 @@ def evaluate(data_loader, model, device, use_amp=False):
     print('* Global acc@1 {top1.global_avg:.3f} loss {losses.global_avg:.3f}'
           .format(top1=metric_logger.acc1, losses=metric_logger.loss))
 
-    utils.print_metrics(y_true, y_pred, groups)
+    malignant_recall, malignant_precision, malignant_f1, malignant_dpd = utils.get_metrics(y_true, y_pred, groups)
+    
+    metric_logger.meters['malignant_recall'].update(malignant_recall)
+    metric_logger.meters['malignant_precision'].update(malignant_precision)
+    metric_logger.meters['malignant_f1'].update(malignant_f1)
+    metric_logger.meters['malignant_dpd'].update(malignant_dpd)
     
     return {k: meter.global_avg for k, meter in metric_logger.meters.items()}

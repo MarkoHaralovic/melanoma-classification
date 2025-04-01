@@ -515,7 +515,7 @@ def _eval(output, target, topk=(1,)):
     pred = pred.t()
     return pred
 
-def print_metrics(y_true, y_pred, groups):
+def get_metrics(y_true, y_pred, groups):
     """
         y_true: list of true labels
         y_pred: list of predicted labels
@@ -597,6 +597,8 @@ def print_metrics(y_true, y_pred, groups):
         logging.info(f"   Group malignant precision: {group_malignant_precision:.4f}")
         logging.info(f"   Group malignant F1: {group_malignant_f1:.4f}")
         logging.info("-----------------------------------------------------------------------")
+    
+    return malignant_recall, malignant_precision, malignant_f1, malignant_dpd
     
     
     

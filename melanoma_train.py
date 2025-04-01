@@ -287,7 +287,7 @@ def train(args):
         logging.info(f"Validation accuracy: {test_stats['acc1']:.2f}%")
         return
     
-    max_accuracy = 0.0
+    max_recall = 0.0
     best_epoch = 0
     
     logging.info(f"Start training for {args.epochs} epochs")
@@ -324,9 +324,14 @@ def train(args):
         model.eval()
         test_stats = evaluate(val_loader, model, device, use_amp=args.use_amp)
         logging.info(f"Validation accuracy: {test_stats['acc1']:.2f}%")
+        logging.info(f"Validation loss: {test_stats['loss']:.4f}")
+        logging.info(f"Validation malignant_recall: {test_stats['malignant_recall']*100:.2f}%")
+        logging.info(f"Validation malignant_precision: {test_stats['malignant_precision']*100:.2f}%")
+        logging.info(f"Validation malignant_f1: {test_stats['malignant_f1']*100:.2f}%")
+        logging.info(f"Validation malignant_dpd: {test_stats['malignant_dpd']*100:.2f}%")
         
-        if test_stats['acc1'] > max_accuracy:
-            max_accuracy = test_stats['acc1']
+        if test_stats['malignant_recall'] > max_recall:
+            max_recall = test_stats['malignant_recall']
             best_epoch = epoch
             if args.output_dir and args.save_ckpt:
                 save_path = os.path.join(args.output_dir, 'best_model.pth')
@@ -334,16 +339,23 @@ def train(args):
                     'epoch': epoch,
                     'model_state_dict': model.state_dict(),
                     'optimizer_state_dict': optimizer.state_dict(),
-                    'val_acc': max_accuracy,
+                    'malignant_recall': max_recall,
+                    'malignant_precision': test_stats['malignant_precision'],
+                    'malignant_f1': test_stats['malignant_f1'],
+                    'malignant_dpd': test_stats['malignant_dpd'],
                     'args': args,
                 }, save_path)
-                logging.info(f"Saved new best model with validation accuracy: {max_accuracy:.2f}%")
+                logging.info(f"Saved new best model with validation malignant lesion recall: {max_recall:.2f}%")
         
-        logging.info(f"Current best accuracy: {max_accuracy:.2f}% (epoch {best_epoch+1})")
+        logging.info(f"Current best malignant recall: {max_recall:.2f}% (epoch {best_epoch+1})")
         
         if log_writer is not None:
             log_writer.update(test_acc1=test_stats['acc1'], head="perf", step=epoch)
             log_writer.update(test_loss=test_stats['loss'], head="perf", step=epoch)
+            log_writer.update(test_malignant_recall=test_stats['malignant_recall'], head="perf", step=epoch)
+            log_writer.update(test_malignant_precision=test_stats['malignant_precision'], head="perf", step=epoch)
+            log_writer.update(test_malignant_f1=test_stats['malignant_f1'], head="perf", step=epoch)
+            log_writer.update(test_malignant_dpd=test_stats['malignant_dpd'], head="perf", step=epoch)
         
         log_stats = {
             **{f'train_{k}': v for k, v in train_stats.items()},
