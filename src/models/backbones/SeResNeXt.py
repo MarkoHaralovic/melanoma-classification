@@ -6,7 +6,6 @@
 
 # ResNeXt: Copy from https://github.com/last-one/tools/blob/master/pytorch/SE-ResNeXt/SeResNeXt.py
 import torch.nn as nn
-import torch
 import math
 import torch.utils.model_zoo as model_zoo
 

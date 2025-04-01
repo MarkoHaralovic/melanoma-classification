@@ -1,0 +1,10 @@
+*.swp
+**/__pycache__/**
+.idea/*
+ckpt/
+*.log
+/pretrained_weights
+/log_dir
+melanoma_classifier_output
+isic2020_challenge
+preparer/*

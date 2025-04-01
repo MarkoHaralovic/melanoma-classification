@@ -6,7 +6,7 @@ import torch.utils.checkpoint as cp
 from math import log2
 from timm.models.registry import register_model
 
-from ..utils import _Upsample, SpatialPyramidPooling, SeparableConv2d
+from ..utils.utils import _Upsample, SpatialPyramidPooling, SeparableConv2d
 
 __all__ = ['ResNet', 'resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152', 'BasicBlock']
 

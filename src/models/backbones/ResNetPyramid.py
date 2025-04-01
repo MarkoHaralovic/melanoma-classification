@@ -8,7 +8,7 @@ from collections import defaultdict
 from math import log2
 from timm.models.registry import register_model
 
-from ..utils import _UpsampleBlend
+from ..utils.utils import _UpsampleBlend
 
 __all__ = ['ResNet', 'resnet18', 'resnet34', 'BasicBlock']
 
