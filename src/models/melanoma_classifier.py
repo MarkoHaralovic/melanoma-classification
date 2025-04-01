@@ -1,6 +1,5 @@
-import torch
 import torch.nn as nn
-from .convnext import convnext_tiny, convnext_small, convnext_base, convnext_large
+from .backbones.ConvNeXt import convnext_tiny, convnext_small, convnext_base, convnext_large
 
 class MelanomaClassifier(nn.Module):
     def __init__(self, model_name='convnext_tiny', num_classes=2, pretrained=True):
@@ -19,15 +18,15 @@ class MelanomaClassifier(nn.Module):
             self.model.head = nn.Linear(768, num_classes)
                 
         elif model_name == 'convnext_small':
-            self.backbone = convnext_small(pretrained=pretrained)
+            self.model = convnext_small(pretrained=pretrained)
             self.model.head  = nn.Linear(768, num_classes)
                 
         elif model_name == 'convnext_base':
-            self.backbone = convnext_base(pretrained=pretrained)
+            self.model = convnext_base(pretrained=pretrained)
             self.model.head  = nn.Linear(1024, num_classes)
                 
         elif model_name == 'convnext_large':
-            self.backbone = convnext_large(pretrained=pretrained)
+            self.model = convnext_large(pretrained=pretrained)
             self.model.head  = nn.Linear(1536, num_classes)
         else:
             raise ValueError(f"Unsupported model name: {model_name}")

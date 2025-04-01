@@ -14,13 +14,13 @@ from timm.utils import ModelEma
 
 import torchvision.transforms as transforms
 
-from models.melanoma_classifier import MelanomaClassifier
-from models.criterion import OhemCrossEntropy,RecallCrossEntropy, labels_to_class_weights
-from engine import train_one_epoch, evaluate
-from utils import NativeScalerWithGradNormCount as NativeScaler
-from optim_factory import create_optimizer, LayerDecayValueAssigner
-from datasets import KaggleISICDataset, LocalISICDataset
-import utils
+from src.models.melanoma_classifier import MelanomaClassifier
+from src.models.losses.criterion import OhemCrossEntropy,RecallCrossEntropy, labels_to_class_weights
+from src.engine.engine import train_one_epoch, evaluate
+from src.utils.utils import NativeScalerWithGradNormCount as NativeScaler
+from src.models.optim_factory import create_optimizer, LayerDecayValueAssigner
+from src.datasets.datasets import KaggleISICDataset, LocalISICDataset
+import src.utils.utils as utils
 import logging
 
 logging.basicConfig(

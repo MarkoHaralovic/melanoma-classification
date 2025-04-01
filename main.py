@@ -25,15 +25,15 @@ from timm.data.mixup import Mixup
 from timm.models import create_model
 from timm.loss import LabelSmoothingCrossEntropy, SoftTargetCrossEntropy
 from timm.utils import ModelEma
-from optim_factory import create_optimizer, LayerDecayValueAssigner
+from src.models.optim_factory import create_optimizer, LayerDecayValueAssigner
 
-from datasets import build_dataset
-from engine import train_one_epoch, evaluate
+from src.datasets.datasets import build_dataset
+from src.engine.engine import train_one_epoch, evaluate
 
-from utils import NativeScalerWithGradNormCount as NativeScaler
-import utils
-import models.convnext
-import models.convnext_isotropic
+from src.utils.utils import NativeScalerWithGradNormCount as NativeScaler
+import src.utils.utils as utils
+import src.models.backbones.ConvNeXt as convnext
+import src.models.backbones.convnext_isotropic as convnext_isotropic
 
 from ffcv.writer import DatasetWriter
 from ffcv.fields import RGBImageField, IntField
