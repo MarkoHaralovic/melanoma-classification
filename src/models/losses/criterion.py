@@ -15,7 +15,7 @@ class OhemCrossEntropy(nn.Module):
       weight (torch.Tensor): weight for cross entropy loss
    """
 
-   def __init__(self, ignore_label=-1, thres = 0.7,  weight=None):
+   def __init__(self, ignore_label=-1, thres = 0.5,  weight=None):
       super(OhemCrossEntropy, self).__init__()
       self.top_k = thres
       self.ignore_label = ignore_label
