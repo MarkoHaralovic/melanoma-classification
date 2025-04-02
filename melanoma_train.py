@@ -287,7 +287,7 @@ def train(args):
         logging.info(f"Validation accuracy: {test_stats['acc1']:.2f}%")
         return
     
-    max_recall = 0.0
+    max_f1 = 0.0
     best_epoch = 0
     
     logging.info(f"Start training for {args.epochs} epochs")
@@ -330,8 +330,8 @@ def train(args):
         logging.info(f"Validation malignant_f1: {test_stats['malignant_f1']*100:.2f}%")
         logging.info(f"Validation malignant_dpd: {test_stats['malignant_dpd']*100:.2f}%")
         
-        if test_stats['malignant_recall'] > max_recall:
-            max_recall = test_stats['malignant_recall']
+        if test_stats['malignant_f1'] > max_f1:
+            max_f1 = test_stats['malignant_f1']
             best_epoch = epoch
             if args.output_dir and args.save_ckpt:
                 save_path = os.path.join(args.output_dir, 'best_model.pth')
@@ -339,15 +339,15 @@ def train(args):
                     'epoch': epoch,
                     'model_state_dict': model.state_dict(),
                     'optimizer_state_dict': optimizer.state_dict(),
-                    'malignant_recall': max_recall,
+                    'malignant_recall': max_f1,
                     'malignant_precision': test_stats['malignant_precision'],
                     'malignant_f1': test_stats['malignant_f1'],
                     'malignant_dpd': test_stats['malignant_dpd'],
                     'args': args,
                 }, save_path)
-                logging.info(f"Saved new best model with validation malignant lesion recall: {max_recall:.2f}%")
+                logging.info(f"Saved new best model with validation malignant lesion f1 score: {max_f1:.2f}%, with recall: {test_stats['malignant_recall']*100:.2f}% and precision: {test_stats['malignant_precision']*100:.2f}% to: {save_path}")
         
-        logging.info(f"Current best malignant recall: {max_recall:.2f}% (epoch {best_epoch+1})")
+        logging.info(f"Current best malignant f1 score: {max_f1:.2f}% (epoch {best_epoch+1})")
         
         if log_writer is not None:
             log_writer.update(test_acc1=test_stats['acc1'], head="perf", step=epoch)
