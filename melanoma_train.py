@@ -371,7 +371,7 @@ def train(args):
     total_time = time.time() - start_time
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))
     logging.info(f'\nTraining completed in {total_time_str}')
-    logging.info(f'Best validation accuracy: {max_accuracy:.2f}% (epoch {best_epoch+1})')
+    logging.info(f'Best validation f1 score: {max_f1:.2f}% (epoch {best_epoch+1})')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser('Melanoma Classification Training')
