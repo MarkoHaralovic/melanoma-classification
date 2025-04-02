@@ -247,7 +247,7 @@ def train(args):
     logging.info(f"Max WD = {max(wd_schedule_values):.7f}, Min WD = {min(wd_schedule_values):.7f}")
     
     if args.ifw:
-        class_weights = labels_to_class_weights(train_dataset.samples,num_classes = args.num_classes, ifw_by_skin_type = True, alpha = 0.5)
+        class_weights = labels_to_class_weights(train_dataset.samples,num_classes = args.num_classes, ifw_by_skin_type = False, alpha = 1.0)
         class_weights = class_weights.to(device)  
     else:
         class_weights = torch.ones(args.num_classes, device=device) 
@@ -273,7 +273,7 @@ def train(args):
     if args.resume:
         if os.path.isfile(args.resume):
             logging.info(f"Loading checkpoint from: {args.resume}")
-            checkpoint = torch.load(args.resume, map_location='cpu')
+            checkpoint = torch.load(args.resume, map_location='cpu', weights_only=False)
             model.load_state_dict(checkpoint['model_state_dict'])
             optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
             args.start_epoch = checkpoint.get('epoch', 0) + 1
