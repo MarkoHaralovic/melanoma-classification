@@ -256,7 +256,8 @@ def train(args):
         criterion = OhemCrossEntropy(
             ignore_label=-1, 
             thres=0.7, 
-            weight = class_weights)  
+            weight = class_weights
+            )  
     elif args.recall_ce:
         criterion = RecallCrossEntropy(
             n_classes=args.num_classes, 
@@ -339,7 +340,7 @@ def train(args):
                     'epoch': epoch,
                     'model_state_dict': model.state_dict(),
                     'optimizer_state_dict': optimizer.state_dict(),
-                    'malignant_recall': max_f1,
+                    'malignant_recall': test_stats['malignant_recall'],
                     'malignant_precision': test_stats['malignant_precision'],
                     'malignant_f1': test_stats['malignant_f1'],
                     'malignant_dpd': test_stats['malignant_dpd'],
