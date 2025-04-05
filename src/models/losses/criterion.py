@@ -29,7 +29,6 @@ class OhemCrossEntropy(nn.Module):
                 targets = targets[valid_mask]
       if logits.shape[0] == 0:
          return logits.sum()
-   
       losses = self.criterion(logits, targets)
                 
       if isinstance(self.top_k, float):

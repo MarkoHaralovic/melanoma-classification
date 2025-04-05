@@ -247,7 +247,7 @@ def train(args):
     logging.info(f"Max WD = {max(wd_schedule_values):.7f}, Min WD = {min(wd_schedule_values):.7f}")
     
     if args.ifw:
-        class_weights = labels_to_class_weights(train_dataset.samples,num_classes = args.num_classes, ifw_by_skin_type = True, alpha = 0.5)
+        class_weights = labels_to_class_weights(train_dataset.samples,num_classes = args.num_classes, ifw_by_skin_type = False, alpha = 1.0)
         class_weights = class_weights.to(device)  
     else:
         class_weights = torch.ones(args.num_classes, device=device) 
@@ -256,7 +256,8 @@ def train(args):
         criterion = OhemCrossEntropy(
             ignore_label=-1, 
             thres=0.7, 
-            weight = class_weights)  
+            weight = class_weights
+            )  
     elif args.recall_ce:
         criterion = RecallCrossEntropy(
             n_classes=args.num_classes, 
@@ -273,7 +274,7 @@ def train(args):
     if args.resume:
         if os.path.isfile(args.resume):
             logging.info(f"Loading checkpoint from: {args.resume}")
-            checkpoint = torch.load(args.resume, map_location='cpu')
+            checkpoint = torch.load(args.resume, map_location='cpu', weights_only=False)
             model.load_state_dict(checkpoint['model_state_dict'])
             optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
             args.start_epoch = checkpoint.get('epoch', 0) + 1
@@ -287,7 +288,7 @@ def train(args):
         logging.info(f"Validation accuracy: {test_stats['acc1']:.2f}%")
         return
     
-    max_recall = 0.0
+    max_f1 = 0.0
     best_epoch = 0
     
     logging.info(f"Start training for {args.epochs} epochs")
@@ -330,8 +331,8 @@ def train(args):
         logging.info(f"Validation malignant_f1: {test_stats['malignant_f1']*100:.2f}%")
         logging.info(f"Validation malignant_dpd: {test_stats['malignant_dpd']*100:.2f}%")
         
-        if test_stats['malignant_recall'] > max_recall:
-            max_recall = test_stats['malignant_recall']
+        if test_stats['malignant_f1'] > max_f1:
+            max_f1 = test_stats['malignant_f1']
             best_epoch = epoch
             if args.output_dir and args.save_ckpt:
                 save_path = os.path.join(args.output_dir, 'best_model.pth')
@@ -339,15 +340,15 @@ def train(args):
                     'epoch': epoch,
                     'model_state_dict': model.state_dict(),
                     'optimizer_state_dict': optimizer.state_dict(),
-                    'malignant_recall': max_recall,
+                    'malignant_recall': test_stats['malignant_recall'],
                     'malignant_precision': test_stats['malignant_precision'],
                     'malignant_f1': test_stats['malignant_f1'],
                     'malignant_dpd': test_stats['malignant_dpd'],
                     'args': args,
                 }, save_path)
-                logging.info(f"Saved new best model with validation malignant lesion recall: {max_recall:.2f}%")
+                logging.info(f"Saved new best model with validation malignant lesion f1 score: {max_f1:.2f}%, with recall: {test_stats['malignant_recall']*100:.2f}% and precision: {test_stats['malignant_precision']*100:.2f}% to: {save_path}")
         
-        logging.info(f"Current best malignant recall: {max_recall:.2f}% (epoch {best_epoch+1})")
+        logging.info(f"Current best malignant f1 score: {max_f1:.2f}% (epoch {best_epoch+1})")
         
         if log_writer is not None:
             log_writer.update(test_acc1=test_stats['acc1'], head="perf", step=epoch)
@@ -371,7 +372,7 @@ def train(args):
     total_time = time.time() - start_time
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))
     logging.info(f'\nTraining completed in {total_time_str}')
-    logging.info(f'Best validation accuracy: {max_accuracy:.2f}% (epoch {best_epoch+1})')
+    logging.info(f'Best validation f1 score: {max_f1:.2f}% (epoch {best_epoch+1})')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser('Melanoma Classification Training')
