@@ -1,5 +1,5 @@
 import argparse
-from datetime import datetime
+from datetime import datetime, timedelta
 import numpy as np
 import time
 import torch
@@ -85,7 +85,8 @@ def train(args):
                                          transform=transform,
                                          augment_transforms = malignant_class_transform,
                                          split='train',
-                                         skin_color_csv=args.skin_color_csv
+                                         skin_color_csv=args.skin_color_csv,
+                                         cielab=args.cielab
                                          )
 
         
@@ -93,7 +94,8 @@ def train(args):
                                          transform=transform,
                                          augment_transforms = None,
                                          split='valid',
-                                         skin_color_csv=args.skin_color_csv
+                                         skin_color_csv=args.skin_color_csv,
+                                         cielab=args.cielab
                                          )
     else:
         train_dataset = KaggleISICDataset(args.kaggle_csv_file, 
@@ -370,7 +372,7 @@ def train(args):
                 f.write(json.dumps(log_stats) + "\n")
     
     total_time = time.time() - start_time
-    total_time_str = str(datetime.timedelta(seconds=int(total_time)))
+    total_time_str = str(timedelta(seconds=int(total_time)))
     logging.info(f'\nTraining completed in {total_time_str}')
     logging.info(f'Best validation f1 score: {max_f1:.2f}% (epoch {best_epoch+1})')
 
@@ -464,7 +466,9 @@ if __name__ == '__main__':
                         help='Probability of switching to cutmix when both enabled')
     parser.add_argument('--mixup_mode', type=str, default='batch',
                         help='How to apply mixup/cutmix ["batch", "pair", "elem"]')
-    
+    parser.add_argument('--cielab', action='store_true', default=False,
+                        help='Load images to CIELab colorspace')
+
     # Model EMA parameters
     parser.add_argument('--model_ema', type=str2bool, default=False,
                         help='Enable tracking moving average of model weights')

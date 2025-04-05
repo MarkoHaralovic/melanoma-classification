@@ -16,7 +16,7 @@ import os
 import pandas as pd
 from torch.utils.data import Dataset
 from torchvision import transforms
-from PIL import Image
+from PIL import Image, ImageCms
 from sklearn.model_selection import train_test_split
 
 
@@ -231,7 +231,7 @@ class KaggleISICDataset(Dataset):
         return image, target, group
     
 class LocalISICDataset(Dataset):
-    def __init__(self, root, transform = None, skin_color_csv = None, augment_transforms = None, split = 'train'):
+    def __init__(self, root, transform = None, skin_color_csv = None, augment_transforms = None, split = 'train', cielab=False):
         """
         Args:
             root (str or ``pathlib.Path``): Root directory path.
@@ -277,6 +277,14 @@ class LocalISICDataset(Dataset):
         else:
             self.class_distribution = (self.benign_count, self.malignant_count * self.oversample_ratio)
         
+        self.use_cielab = cielab
+        self.rgb2lab = ImageCms.buildTransformFromOpenProfiles(
+            ImageCms.createProfile("sRGB"),
+            ImageCms.createProfile("LAB"),
+            "RGB",
+            "LAB"
+        )
+
         if skin_color_csv is not None:
             self.skin_data = pd.read_csv(skin_color_csv, sep=';')
             self.samples_with_skin = []
@@ -326,6 +334,9 @@ class LocalISICDataset(Dataset):
             
         image = Image.open(image_path).convert('RGB')
         
+        if self.use_cielab:
+            image = ImageCms.applyTransform(image, self.rgb2lab)
+
         if target == 1 and self.split == 'train' and augment_type != "original" and self.augment_transforms is not None:
             image = self.augment_transforms[augment_type](image)
             
