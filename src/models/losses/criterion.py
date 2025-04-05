@@ -51,19 +51,19 @@ class RecallCrossEntropy(nn.Module):
       pred = logits.argmax(dim=1)
       idex =  (pred != targets).view(-1) # get the index of the misclassified samples
       
-      gt_counter = torch.ones((self.n_classes,))
+      gt_counter = torch.ones((self.n_classes,), device=targets.device)
       gt_idx, gt_count = torch.unique(targets, return_counts=True)
       
-      gt_count[gt_idx==self.ignore_index] = gt_count[1]
-      gt_idx[gt_idx==self.ignore_index] = 1 
+      # gt_count[gt_idx==self.ignore_index] = gt_count[1].clone()
+      # gt_idx[gt_idx==self.ignore_index] = 1 
       gt_counter[gt_idx] = gt_count.float()
       
-      fn_counter = torch.ones((self.n_classes))
+      fn_counter = torch.ones((self.n_classes), device=targets.device)
       fn = targets.view(-1)[idex]
       fn_idx, fn_count = torch.unique(fn, return_counts=True)
       
-      fn_count[fn_idx==self.ignore_index] = fn_count[1]
-      fn_idx[fn_idx==self.ignore_index] = 1 
+      # fn_count[fn_idx==self.ignore_index] = fn_count[1].clone()
+      # fn_idx[fn_idx==self.ignore_index] = 1 
       fn_counter[fn_idx] = fn_count.float()
       
       weight = fn_counter / gt_counter
@@ -93,7 +93,7 @@ def labels_to_class_weights(samples, ifw_by_skin_type = False, num_classes=2, al
       
       weights = np.copy(class_counts)
       weights[weights == 0] = 1
-      weights = 1.0 / weights * alpha
+      weights = alpha * np.sum(weights) / weights
       
    else:
       unique_skin_colors = set()
