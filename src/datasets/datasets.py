@@ -18,7 +18,7 @@ from torch.utils.data import Dataset
 from torchvision import transforms
 from PIL import Image, ImageCms
 from sklearn.model_selection import train_test_split
-
+import cv2
 
 def build_dataset(is_train, args, transform=None):
     if not args.convert_to_ffcv and transform is None:
@@ -331,11 +331,12 @@ class LocalISICDataset(Dataset):
         else:
             image_path, target = self.samples[adjusted_idx]
             group = -1
-            
-        image = Image.open(image_path).convert('RGB')
-        
-        if self.use_cielab:
-            image = ImageCms.applyTransform(image, self.rgb2lab)
+          
+        if not self.use_cielab:
+            image = Image.open(image_path).convert('RGB')
+        else:
+            image = Image.fromarray(cv2.cvtColor(cv2.imread(image_path), cv2.COLOR_RGB2LAB) )
+            # image = ImageCms.applyTransform(image, self.rgb2lab) 
 
         if target == 1 and self.split == 'train' and augment_type != "original" and self.augment_transforms is not None:
             image = self.augment_transforms[augment_type](image)

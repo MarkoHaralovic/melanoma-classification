@@ -151,6 +151,11 @@ def train(args):
         drop_last=False
     )
     
+    print(f"args.cielab : {args.cielab}")
+    from tqdm import tqdm
+    for batch in tqdm(train_loader):
+        pass
+    
     log_writer = None
     if args.output_dir:
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')

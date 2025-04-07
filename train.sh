@@ -26,4 +26,5 @@ python melanoma_train.py \
       --mixup 0.0 \
       --update_freq 1 \
       --ohem \
-      --ifw 
+      --ifw  \
+      --cielab 
