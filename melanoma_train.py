@@ -67,11 +67,18 @@ def train(args):
     np.random.seed(seed)
     cudnn.benchmark = True
     
-    transform = transforms.Compose([
+    if not args.cielab:
+        transform = transforms.Compose([
             transforms.Resize((args.input_size, args.input_size)),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-    ])
+        ])
+    else:
+        transform = transforms.Compose([
+            transforms.Resize((args.input_size, args.input_size)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+        ])
     malignant_class_transform = {
             "original": transforms.Compose([]),
             "horizontal_flip": transforms.Compose([transforms.RandomHorizontalFlip(p=1.0)]),
