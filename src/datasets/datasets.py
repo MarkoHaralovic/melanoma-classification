@@ -19,6 +19,7 @@ from torchvision import transforms
 from PIL import Image
 from sklearn.model_selection import train_test_split
 import cv2
+import random
 
 def build_dataset(is_train, args, transform=None):
     if not args.convert_to_ffcv and transform is None:
@@ -146,7 +147,7 @@ def build_transform(is_train, args):
 
 
 class KaggleISICDataset(Dataset):
-    def __init__(self, csv_file, image_dir, skin_color_csv = None, transform=None, augment_transforms = None,split='train', test_size=0.2, seed=42):
+    def __init__(self, csv_file, image_dir, skin_color_csv = None, transform=None, augment_transforms = None,split='train', test_size=0.2,seed=42):
         """
         Args:
             csv_file (str): Path to the CSV file containing image names and targets.
@@ -231,7 +232,7 @@ class KaggleISICDataset(Dataset):
         return image, target, group
     
 class LocalISICDataset(Dataset):
-    def __init__(self, root, transform = None, skin_color_csv = None, augment_transforms = None, split = 'train', cielab=False):
+    def __init__(self, root, transform = None, skin_color_csv = None, augment_transforms = None, split = 'train', cielab=False, skin_former = False):
         """
         Args:
             root (str or ``pathlib.Path``): Root directory path.
@@ -242,11 +243,14 @@ class LocalISICDataset(Dataset):
                 - fitzpatrick_scale: The Fitzpatrick scale is a numerical classification schema for human skin color. 
                 - group : Each patient is classified into one of the groups based on his skin color type.
             augment_transforms (dict): Dictionary containing augmentations to be applied on malignant cases.
+            cielab (bool): If True, convert images to CIELAB color space.
+            skin_former (bool): If True, use skin-former augmentation.
         """
         
         self.root = root
         self.transform = transform
         self.split = split
+        self.skin_fomer = skin_former
         
         if augment_transforms is None:
             self.augment_transforms = None
@@ -259,15 +263,27 @@ class LocalISICDataset(Dataset):
         benign_dir = os.path.join(split_dir, 'benign')
         malignant_dir = os.path.join(split_dir, 'malignant')
         
+        benign_mask_dir = os.path.join(self.root, 'masks', split, 'benign')
+        malignant_mask_dir = os.path.join(self.root, 'masks', split, 'malignant')
+        
+        benign_masks = [(os.path.join(benign_mask_dir, mask), 0) for mask in os.listdir(benign_mask_dir) 
+                        if mask.lower().endswith(('.jpg'))]
+        malignant_masks = [(os.path.join(benign_mask_dir, mask), 0) for mask in os.listdir(malignant_mask_dir) 
+                        if mask.lower().endswith(('.jpg'))]
+        
         benign_images = [(os.path.join(benign_dir, img), 0) for img in os.listdir(benign_dir) 
                          if img.lower().endswith(('.jpg'))]
         malignant_images = [(os.path.join(malignant_dir, img), 1) for img in os.listdir(malignant_dir) 
                            if img.lower().endswith(('.jpg'))]
-        self.samples = []
-        self.samples.extend(benign_images)
-        self.samples.extend(malignant_images)
         
-        self.image_ids = [os.path.splitext(os.path.basename(path))[0] for path, _ in self.samples]
+        benign_images = sorted(benign_images, key=lambda x: x[0])
+        malignant_images = sorted(malignant_images, key=lambda x: x[0])
+        benign_masks = sorted(benign_masks)
+        malignant_masks = sorted(malignant_masks)
+        
+        self.samples = []
+        self.samples.extend(zip(benign_images, benign_masks))
+        self.samples.extend(zip(malignant_images, malignant_masks))
         
         self.benign_count = len(benign_images)
         self.malignant_count = len(malignant_images)
@@ -278,7 +294,7 @@ class LocalISICDataset(Dataset):
             self.class_distribution = (self.benign_count, self.malignant_count * self.oversample_ratio)
         
         self.use_cielab = cielab
-
+        
         if skin_color_csv is not None:
             self.skin_data = pd.read_csv(skin_color_csv, sep=';')
             self.samples_with_skin = []
@@ -286,18 +302,22 @@ class LocalISICDataset(Dataset):
             for _, row in self.skin_data.iterrows():
                 img_name = row['image_name']
                 if 'group' in self.skin_data.columns:
-                    skin_info_dict[img_name] = row['group']
+                    skin_info_dict[img_name] = {'ita': row['ita'], 'group': row['group']}
                     
             missing = 0
-            for path, label in self.samples:
+            for (path, label), mask in self.samples:
                 img_filename = os.path.basename(path)
                 
                 if img_filename in skin_info_dict:
-                    self.samples_with_skin.append((path, label, skin_info_dict[img_filename]))
+                    if not skin_former:
+                        self.samples_with_skin.append((path, label, skin_info_dict[img_filename]['group']))
+                    else:
+                        self.samples_with_skin.append((path, label, skin_info_dict[img_filename]['group'],skin_info_dict[img_filename]['ita'], mask))
                 else:
                     missing+=1
     
             self.samples = self.samples_with_skin
+            self.groups = 1
             if skin_color_csv is not None:
                 self.groups =  len(self.skin_data['group'].unique())
                 self.group = self.skin_data['group'].value_counts()
@@ -320,17 +340,24 @@ class LocalISICDataset(Dataset):
             adjusted_idx = idx
             augment_type = "original"
         
-        if isinstance(self.samples[adjusted_idx], tuple) and len(self.samples[adjusted_idx]) == 3:
+        if isinstance(self.samples[adjusted_idx], tuple) and len(self.samples[adjusted_idx]) == 3 and not self.skin_fomer:
             image_path, target, group = self.samples[adjusted_idx]
+        elif isinstance(self.samples[adjusted_idx], tuple) and len(self.samples[adjusted_idx]) == 4 and self.skin_fomer:
+            image_path, target, group,ita, mask = self.samples[adjusted_idx]
         else:
             image_path, target = self.samples[adjusted_idx]
             group = -1
           
         if not self.use_cielab:
             image = Image.open(image_path).convert('RGB')
+        elif self.use_cielab and not self.skin_fomer:
+            image = Image.fromarray(cv2.cvtColor(cv2.imread(image_path), cv2.COLOR_BGR2LAB))
         else:
             image = Image.fromarray(cv2.cvtColor(cv2.imread(image_path), cv2.COLOR_BGR2LAB))
-
+            mask = Image.open(mask)
+            random_ita= random.randint(0, 55)
+            delta_ita = random_ita - ita
+            
         if target == 1 and self.split == 'train' and augment_type != "original" and self.augment_transforms is not None:
             image = self.augment_transforms[augment_type](image)
             
