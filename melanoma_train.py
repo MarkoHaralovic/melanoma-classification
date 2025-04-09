@@ -77,7 +77,7 @@ def train(args):
         transform = transforms.Compose([
             transforms.Resize((args.input_size, args.input_size)),
             transforms.ToTensor(),
-            transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+            transforms.Normalize(mean=[0.370, 0.133, 0.092], std=[0.327, 0.090, 0.105])
         ])
     malignant_class_transform = {
             "original": transforms.Compose([]),

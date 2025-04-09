@@ -16,7 +16,7 @@ import os
 import pandas as pd
 from torch.utils.data import Dataset
 from torchvision import transforms
-from PIL import Image, ImageCms
+from PIL import Image
 from sklearn.model_selection import train_test_split
 import cv2
 
@@ -278,12 +278,6 @@ class LocalISICDataset(Dataset):
             self.class_distribution = (self.benign_count, self.malignant_count * self.oversample_ratio)
         
         self.use_cielab = cielab
-        self.rgb2lab = ImageCms.buildTransformFromOpenProfiles(
-            ImageCms.createProfile("sRGB"),
-            ImageCms.createProfile("LAB"),
-            "RGB",
-            "LAB"
-        )
 
         if skin_color_csv is not None:
             self.skin_data = pd.read_csv(skin_color_csv, sep=';')
@@ -335,8 +329,7 @@ class LocalISICDataset(Dataset):
         if not self.use_cielab:
             image = Image.open(image_path).convert('RGB')
         else:
-            image = Image.fromarray(cv2.cvtColor(cv2.imread(image_path), cv2.COLOR_RGB2LAB) )
-            # image = ImageCms.applyTransform(image, self.rgb2lab) 
+            image = Image.fromarray(cv2.cvtColor(cv2.imread(image_path), cv2.COLOR_BGR2LAB))
 
         if target == 1 and self.split == 'train' and augment_type != "original" and self.augment_transforms is not None:
             image = self.augment_transforms[augment_type](image)
