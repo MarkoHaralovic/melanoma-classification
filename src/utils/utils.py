@@ -511,10 +511,18 @@ def auto_load_model(args, model, model_without_ddp, optimizer, loss_scaler, mode
 def _eval(output, target, topk=(1,)):
     """Computes the accuracy over the k top predictions for the specified values of k"""
     maxk = min(max(topk), output.size()[1])
-    batch_size = target.size(0)
     _, pred = output.topk(maxk, 1, True, True)
     pred = pred.t()
     return pred
+
+def compute_preds_sum_out(outputs, targets, num_classes, num_domains):
+    _logits = []
+    for i in range(num_domains):
+        _logits.append(outputs[:, i * num_classes:(i + 1) * num_classes])
+    _logits = torch.stack(_logits, dim=0).sum(dim=0)
+    predictions = torch.argmax(_logits, axis=1)
+    
+    return predictions
 
 def get_metrics(y_true, y_pred, groups):
     """

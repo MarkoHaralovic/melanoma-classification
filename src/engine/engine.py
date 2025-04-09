@@ -12,6 +12,7 @@ import torch
 from timm.data import Mixup
 from timm.utils import accuracy, ModelEma
 
+from ..models.losses.criterion import DomainIndependentLoss
 from ..utils import utils
 
 def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
@@ -50,12 +51,18 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
             samples, targets = mixup_fn(samples, targets)
 
         if use_amp:
-            with torch.cuda.amp.autocast():
+            with torch.amp.autocast("cuda"):
                 output = model(samples)
-                loss = criterion(output, targets)
+                if isinstance(criterion, DomainIndependentLoss):
+                    loss = criterion(output, targets, groups)
+                else:
+                    loss = criterion(output, targets)
         else: # full precision
             output = model(samples)
-            loss = criterion(output, targets)
+            if isinstance(criterion, DomainIndependentLoss):
+                loss = criterion(output, targets, groups)
+            else:
+                loss = criterion(output, targets)
 
         loss_value = loss.item()
 
@@ -87,9 +94,14 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
             torch.cuda.synchronize()
 
         if mixup_fn is None:
-            class_acc = (output.max(-1)[-1] == targets).float().mean()
+            if not isinstance(criterion, DomainIndependentLoss):
+                class_acc = (output.max(-1)[-1] == targets).float().mean()
+            else:
+                preds = utils.compute_preds_sum_out(output, targets, criterion.num_classes, criterion.num_domains)
+                class_acc = (preds == targets).float().sum() / targets.shape[0]
         else:
             class_acc = None
+            
         metric_logger.update(loss=loss_value)
         metric_logger.update(class_acc=class_acc)
         min_lr = 10.
@@ -161,18 +173,28 @@ def evaluate(data_loader, model, device, use_amp=False):
         if use_amp:
             with torch.amp.autocast("cuda"):
                 output = model(images)
-                loss = criterion(output, target)
+                if isinstance(criterion, DomainIndependentLoss):
+                    loss = criterion(output, target, group)
+                else:
+                    loss = criterion(output, target)
         else:
             output = model(images)
-            loss = criterion(output, target)
+            if isinstance(criterion, DomainIndependentLoss):
+                loss = criterion(output, target, group)
+            else:
+                loss = criterion(output, target)
 
-        preds = utils._eval(output, target)[0]
+        if not isinstance(criterion, DomainIndependentLoss):
+            preds = utils._eval(output, target)[0]
+            acc1 = accuracy(output, target, topk=(1,5))[0]
+        else:
+            preds = utils.compute_preds_sum_out(output, target, criterion.num_classes, criterion.num_domains)
+            acc1 = (preds == target).float().sum() / target.shape[0]
+            
         y_true.extend(target.cpu().tolist())
         y_pred.extend(preds.cpu().tolist())
         groups.extend(group.cpu().tolist())
-        
-        acc1 = accuracy(output, target, topk=(1,5))[0]
-        
+                
         batch_size = images.shape[0]
         metric_logger.update(loss=loss.item())
         metric_logger.meters['acc1'].update(acc1.item(), n=batch_size)

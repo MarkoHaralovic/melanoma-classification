@@ -15,7 +15,7 @@ from timm.utils import ModelEma
 import torchvision.transforms as transforms
 
 from src.models.melanoma_classifier import MelanomaClassifier
-from src.models.losses.criterion import OhemCrossEntropy,RecallCrossEntropy, labels_to_class_weights
+from src.models.losses.criterion import OhemCrossEntropy,RecallCrossEntropy,DomainIndependentLoss, labels_to_class_weights
 from src.engine.engine import train_one_epoch, evaluate
 from src.utils.utils import NativeScalerWithGradNormCount as NativeScaler
 from src.models.optim_factory import create_optimizer, LayerDecayValueAssigner
@@ -158,10 +158,6 @@ def train(args):
         drop_last=False
     )
     
-    print(f"args.cielab : {args.cielab}")
-    from tqdm import tqdm
-    for batch in tqdm(train_loader):
-        pass
     
     log_writer = None
     if args.output_dir:
@@ -193,9 +189,11 @@ def train(args):
             os.makedirs(args.log_dir, exist_ok=True)
             log_writer = utils.TensorboardLogger(log_dir=args.log_dir)
     
+    logging.info(f"Using {args.num_groups} groups of skin color")
+    logging.info(f"Total class num : {args.num_classes * args.num_groups}")
     model = MelanomaClassifier(
         model_name=args.model,
-        num_classes=args.num_classes,
+        num_classes=args.num_classes * args.num_groups, 
         pretrained=args.pretrained
     )
     model = model.to(device)
@@ -229,7 +227,7 @@ def train(args):
             switch_prob=args.mixup_switch_prob, 
             mode=args.mixup_mode,
             label_smoothing=args.smoothing, 
-            num_classes=args.num_classes
+            num_classes=args.num_classes * args.num_groups
         )
     if args.layer_decay < 1.0 or args.layer_decay > 1.0:
         num_layers = 12 # convnext layers divided into 12 parts, each with a different decayed lr value.
@@ -261,10 +259,13 @@ def train(args):
     logging.info(f"Max WD = {max(wd_schedule_values):.7f}, Min WD = {min(wd_schedule_values):.7f}")
     
     if args.ifw:
-        class_weights = labels_to_class_weights(train_dataset.samples,num_classes = args.num_classes, ifw_by_skin_type = False, alpha = 1.0)
+        if args.num_groups > 1:
+            class_weights = labels_to_class_weights(train_dataset.samples,num_classes = args.num_classes, ifw_by_skin_type = True, alpha = 1.0)
+        else:
+            class_weights = labels_to_class_weights(train_dataset.samples,num_classes = args.num_classes, ifw_by_skin_type = False, alpha = 1.0)
         class_weights = class_weights.to(device)  
     else:
-        class_weights = torch.ones(args.num_classes, device=device) 
+        class_weights = torch.ones(args.num_classes * args.num_groups, device=device) 
         
     if args.ohem:
         criterion = OhemCrossEntropy(
@@ -276,6 +277,12 @@ def train(args):
         criterion = RecallCrossEntropy(
             n_classes=args.num_classes, 
             weight = class_weights)
+    elif args.domain_independent_loss:
+        criterion = DomainIndependentLoss(
+            num_classes = args.num_classes,
+            num_domains = args.num_groups,
+            weight = class_weights
+        )
     elif mixup_fn is not None:
         criterion = SoftTargetCrossEntropy()
     elif args.smoothing > 0:
@@ -338,6 +345,7 @@ def train(args):
         
         model.eval()
         test_stats = evaluate(val_loader, model, device, use_amp=args.use_amp)
+        
         logging.info(f"Validation accuracy: {test_stats['acc1']:.2f}%")
         logging.info(f"Validation loss: {test_stats['loss']:.4f}")
         logging.info(f"Validation malignant_recall: {test_stats['malignant_recall']*100:.2f}%")
@@ -412,6 +420,8 @@ if __name__ == '__main__':
                         help='Model architecture to use')
     parser.add_argument('--num_classes', default=2, type=int,
                         help='Number of output classes')
+    parser.add_argument('--num_groups', default = 1, type=int,
+                        help = "Number of skin color groups")
     parser.add_argument('--pretrained', default=True, type=str2bool,
                         help='Use pretrained weights')
     parser.add_argument('--input_size', default=224, type=int,
@@ -440,6 +450,9 @@ if __name__ == '__main__':
                         help='Use inverse frequency weighting.')
     parser.add_argument('--recall_ce', action='store_true', default=False,
                         help='Use Recall Cross Entropy loss')
+    parser.add_argument('--domain_independent_loss', action='store_true', default=False,
+                        help='Use Domain Independent Loss')
+    
     # Optimizer parameters
     parser.add_argument('--opt', default='adamw', type=str, metavar='OPTIMIZER',
                         help='Optimizer (default: "adamw"')
@@ -447,11 +460,11 @@ if __name__ == '__main__':
                         help='Optimizer Epsilon (default: 1e-8)')
     parser.add_argument('--opt_betas', default=None, type=float, nargs='+', metavar='BETA',
                         help='Optimizer Betas (default: None, use opt default)')
-    parser.add_argument('--lr', default=0.0001, type=float,
+    parser.add_argument('--lr', default=1e-4, type=float,
                         help='Learning rate')
     parser.add_argument('--min_lr', type=float, default=1e-6,
                         help='Lower LR bound for cyclic schedulers')
-    parser.add_argument('--weight_decay', default=0.05, type=float,
+    parser.add_argument('--weight_decay', default=5e-3, type=float,
                         help='Weight decay')
     parser.add_argument('--weight_decay_end', default=None, type=float,
                         help='Final weight decay value')
@@ -512,4 +525,5 @@ if __name__ == '__main__':
     if args.weight_decay_end is None:
         args.weight_decay_end = args.weight_decay
     
+    print(args)
     train(args)
