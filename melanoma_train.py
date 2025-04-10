@@ -93,7 +93,8 @@ def train(args):
                                          augment_transforms = malignant_class_transform,
                                          split='train',
                                          skin_color_csv=args.skin_color_csv,
-                                         cielab=args.cielab
+                                         cielab=args.cielab,
+                                         skin_former=args.skin_former
                                          )
 
         
@@ -102,7 +103,8 @@ def train(args):
                                          augment_transforms = None,
                                          split='valid',
                                          skin_color_csv=args.skin_color_csv,
-                                         cielab=args.cielab
+                                         cielab=args.cielab,
+                                         skin_former=args.skin_former
                                          )
     else:
         train_dataset = KaggleISICDataset(args.kaggle_csv_file, 
@@ -493,6 +495,8 @@ if __name__ == '__main__':
                         help='How to apply mixup/cutmix ["batch", "pair", "elem"]')
     parser.add_argument('--cielab', action='store_true', default=False,
                         help='Load images to CIELab colorspace')
+    parser.add_argument('--skin_former', action='store_true', default=False,
+                        help='Transform lighter skin types to darker ones')
 
     # Model EMA parameters
     parser.add_argument('--model_ema', type=str2bool, default=False,

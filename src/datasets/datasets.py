@@ -7,19 +7,21 @@
 
 
 import os
+import random
 from torchvision import datasets, transforms
 
 from timm.data.constants import \
     IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD, IMAGENET_INCEPTION_MEAN, IMAGENET_INCEPTION_STD
 from timm.data import create_transform
-import os
 import pandas as pd
 from torch.utils.data import Dataset
 from torchvision import transforms
 from PIL import Image
 from sklearn.model_selection import train_test_split
 import cv2
-import random
+import numpy as np
+
+from ..utils.utils import ita_to_group
 
 def build_dataset(is_train, args, transform=None):
     if not args.convert_to_ffcv and transform is None:
@@ -251,6 +253,9 @@ class LocalISICDataset(Dataset):
         self.transform = transform
         self.split = split
         self.skin_fomer = skin_former
+
+        # Probability of applying skin transformations to dark
+        self.group_shift_probs = [0.1, 0.33, 0, 0] 
         
         if augment_transforms is None:
             self.augment_transforms = None
@@ -266,9 +271,9 @@ class LocalISICDataset(Dataset):
         benign_mask_dir = os.path.join(self.root, 'masks', split, 'benign')
         malignant_mask_dir = os.path.join(self.root, 'masks', split, 'malignant')
         
-        benign_masks = [(os.path.join(benign_mask_dir, mask), 0) for mask in os.listdir(benign_mask_dir) 
+        benign_masks = [os.path.join(benign_mask_dir, mask) for mask in os.listdir(benign_mask_dir) 
                         if mask.lower().endswith(('.jpg'))]
-        malignant_masks = [(os.path.join(benign_mask_dir, mask), 0) for mask in os.listdir(malignant_mask_dir) 
+        malignant_masks = [os.path.join(malignant_mask_dir, mask) for mask in os.listdir(malignant_mask_dir) 
                         if mask.lower().endswith(('.jpg'))]
         
         benign_images = [(os.path.join(benign_dir, img), 0) for img in os.listdir(benign_dir) 
@@ -297,9 +302,13 @@ class LocalISICDataset(Dataset):
         
         if skin_color_csv is not None:
             self.skin_data = pd.read_csv(skin_color_csv, sep=';')
+            # self.skin_data = pd.read_csv(skin_color_csv, sep=',')
+            
             self.samples_with_skin = []
             skin_info_dict = {}
             for _, row in self.skin_data.iterrows():
+                print(row)
+                print(row.keys())
                 img_name = row['image_name']
                 if 'group' in self.skin_data.columns:
                     skin_info_dict[img_name] = {'ita': row['ita'], 'group': row['group']}
@@ -312,7 +321,7 @@ class LocalISICDataset(Dataset):
                     if not skin_former:
                         self.samples_with_skin.append((path, label, skin_info_dict[img_filename]['group']))
                     else:
-                        self.samples_with_skin.append((path, label, skin_info_dict[img_filename]['group'],skin_info_dict[img_filename]['ita'], mask))
+                        self.samples_with_skin.append((path, label, skin_info_dict[img_filename]['group'], skin_info_dict[img_filename]['ita'], mask))
                 else:
                     missing+=1
     
@@ -342,8 +351,8 @@ class LocalISICDataset(Dataset):
         
         if isinstance(self.samples[adjusted_idx], tuple) and len(self.samples[adjusted_idx]) == 3 and not self.skin_fomer:
             image_path, target, group = self.samples[adjusted_idx]
-        elif isinstance(self.samples[adjusted_idx], tuple) and len(self.samples[adjusted_idx]) == 4 and self.skin_fomer:
-            image_path, target, group,ita, mask = self.samples[adjusted_idx]
+        elif isinstance(self.samples[adjusted_idx], tuple) and len(self.samples[adjusted_idx]) == 5 and self.skin_fomer:
+            image_path, target, group, ita, mask = self.samples[adjusted_idx]
         else:
             image_path, target = self.samples[adjusted_idx]
             group = -1
@@ -353,10 +362,30 @@ class LocalISICDataset(Dataset):
         elif self.use_cielab and not self.skin_fomer:
             image = Image.fromarray(cv2.cvtColor(cv2.imread(image_path), cv2.COLOR_BGR2LAB))
         else:
-            image = Image.fromarray(cv2.cvtColor(cv2.imread(image_path), cv2.COLOR_BGR2LAB))
-            mask = Image.open(mask)
-            random_ita= random.randint(0, 55)
-            delta_ita = random_ita - ita
+            np_image = cv2.cvtColor(cv2.imread(image_path), cv2.COLOR_BGR2LAB)
+            
+            shift_prob = self.group_shift_probs[group]
+            if random.random() < shift_prob:
+                # Apply transformation
+                mask = cv2.imread(mask)
+                assert len(mask.shape) == 2 or mask.shape[-1] == 1, "Mask has to be grayscale"
+
+                # # Dummy mask, remove me!
+                # if len(mask.shape) == 3:
+                #     mask = np.zeros_like(np_image[:,:,0])
+                #     mask[:224,:224] = 1
+
+                # Min and max ita in our darkest groups
+                target_ita = random.random() * 28 
+                delta_ita = ita - target_ita
+
+                np_image[:, :, 2] += (mask * delta_ita * 0.5).astype(np.uint)   # Shift b
+                np_image[:, :, 0] -= (mask * delta_ita * 0.12).astype(np.uint)  # Shift L
+
+                # New label
+                target = ita_to_group(target_ita)
+
+            image = Image.fromarray(np_image)
             
         if target == 1 and self.split == 'train' and augment_type != "original" and self.augment_transforms is not None:
             image = self.augment_transforms[augment_type](image)

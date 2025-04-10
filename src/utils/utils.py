@@ -638,3 +638,23 @@ def compute_cielab_stats(data_loader):
     b_std = np.sqrt((b_sq_sum / num_pixels) - (b_mean ** 2))
     
     return [l_mean, a_mean, b_mean], [l_std, a_std, b_std]
+
+def ita_to_group(ita):
+    if ita > 55:
+        # Very light
+        return 0
+    elif ita > 41:
+        # Light
+        return 1
+    elif ita > 28:
+        # Intermediate
+        return 2
+    elif ita > 10:
+        # Tan
+        return 3
+    elif ita > -30:
+        # Brown
+        return 3
+    else:
+        # Dark
+        return 3 
