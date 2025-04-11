@@ -66,12 +66,12 @@ if __name__ == "__main__":
     dataset_root = args.source_path
     num_workers = args.num_workers or max(1, multiprocessing.cpu_count() - 1)
     
-    print(f"Using {num_workers} workes")
+    print(f"Using {num_workers} workers")
     os.makedirs(os.path.join(dataset_root, "masks"), exist_ok=True)
     
     tasks = []
     for folder in os.listdir(dataset_root):
-        if folder in ["train", "val", "test"]:
+        if folder in ["train", "valid", "test"]:
             os.makedirs(os.path.join(dataset_root, "masks", folder), exist_ok=True)
             for subfolder in os.listdir(os.path.join(dataset_root, folder)):
                 os.makedirs(os.path.join(dataset_root, "masks", folder, subfolder), exist_ok=True)

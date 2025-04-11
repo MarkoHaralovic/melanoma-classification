@@ -30,4 +30,4 @@ python melanoma_train.py \
       --cielab \
       --weight_decay 0.0001 \
       --lr 0.0001 \
-      --output_dir "C:\lumen_melanoma_classification\melanoma-classification\melanoma_classifier_output"
+      --output_dir "C:\lumen_melanoma_classification\melanoma-classification\melanoma_classifier_output" 

@@ -307,7 +307,17 @@ def train(args):
             
     if args.test:
         model.eval()
+        val_indices = torch.randperm(len(val_dataset))[:200]
+        val_dataset = torch.utils.data.Subset(val_dataset, val_indices)
         test_stats = evaluate(val_loader, model, device, use_amp=args.use_amp)
+        val_loader = torch.utils.data.DataLoader(
+            val_dataset,
+            batch_size=args.batch_size,
+            shuffle=False,
+            num_workers=args.num_workers,
+            pin_memory=args.pin_mem,
+            drop_last=False
+        )
         logging.info(f"Validation accuracy: {test_stats['acc1']:.2f}%")
         return
     

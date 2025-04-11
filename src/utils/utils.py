@@ -533,8 +533,10 @@ def get_metrics(y_true, y_pred, groups):
     y_pred = torch.tensor(y_pred).to(torch.int64)
     y_true = torch.tensor(y_true).to(torch.int64)
     groups = torch.tensor(groups).to(torch.int64)
-    
+    import pdb
+    pdb.set_trace()
     correct = y_pred.eq(y_true)
+    pdb.set_trace()
     
     global_acc = correct.float().sum() * 100. / y_true.size(0)
     logging.info(f"Global accuracy: {global_acc.item()}")
@@ -543,6 +545,7 @@ def get_metrics(y_true, y_pred, groups):
     fp = ((y_pred == 1) & (y_true == 0)).sum().item()
     tn = ((y_pred == 0) & (y_true == 0)).sum().item()
     fn = ((y_pred == 0) & (y_true == 1)).sum().item()
+    pdb.set_trace()
     
     confusion_matrix = {
         'TP': tp,
@@ -558,6 +561,7 @@ def get_metrics(y_true, y_pred, groups):
     malignant_recall = tp / (tp + fn + 1e-10) 
     malignant_precision = tp / (tp + fp + 1e-10) 
     malignant_f1 = 2 * malignant_precision * malignant_recall / (malignant_precision + malignant_recall + 1e-10) 
+    pdb.set_trace()
     
     logging.info(f"Malignant recall: {malignant_recall:.4f}")
     logging.info(f"Malignant precision: {malignant_precision:.4f}")
@@ -566,6 +570,7 @@ def get_metrics(y_true, y_pred, groups):
     benign_recall = tn / (tn + fp + 1e-10)
     benign_precision = tn / (tn + fn + 1e-10) 
     benign_f1 = 2 * benign_precision * benign_recall / (benign_precision + benign_recall + 1e-10)
+    pdb.set_trace()
     
     logging.info(f"benign precision: {benign_precision}")
     logging.info(f"benign f1: {benign_f1}")
@@ -583,6 +588,7 @@ def get_metrics(y_true, y_pred, groups):
                 y_pred = y_pred[malignant].cpu().numpy(), 
                 sensitive_features = groups[malignant].cpu().numpy()
             )
+        pdb.set_trace()
         logging.info(f"Demographic parity difference on malignant subset: {malignant_dpd.item()}")
     except Exception as e:
         logging.error("Error calculating demographic parity difference: ", e)

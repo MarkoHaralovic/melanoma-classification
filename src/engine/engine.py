@@ -189,6 +189,8 @@ def evaluate(data_loader, model, device, use_amp=False):
             acc1 = accuracy(output, target, topk=(1,5))[0]
         else:
             preds = utils.compute_preds_sum_out(output, target, criterion.num_classes, criterion.num_domains)
+            import pdb
+            pdb.set_trace()
             acc1 = (preds == target).float().sum() / target.shape[0]
             
         y_true.extend(target.cpu().tolist())
@@ -205,6 +207,7 @@ def evaluate(data_loader, model, device, use_amp=False):
           .format(top1=metric_logger.acc1, losses=metric_logger.loss))
 
     malignant_recall, malignant_precision, malignant_f1, malignant_dpd = utils.get_metrics(y_true, y_pred, groups)
+    pdb.set_trace()
     
     metric_logger.meters['malignant_recall'].update(malignant_recall)
     metric_logger.meters['malignant_precision'].update(malignant_precision)
