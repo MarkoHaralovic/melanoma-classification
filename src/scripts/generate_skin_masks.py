@@ -1,6 +1,9 @@
 import argparse
 import cv2 as cv
-
+import os
+from tqdm import tqdm
+import concurrent.futures
+import multiprocessing
 
 def generate_mask(image_path):
     img = cv.imread(image_path)
@@ -40,12 +43,46 @@ def generate_mask(image_path):
 
     return thresh
 
+def process_image(args):
+    image_path, mask_path = args
+    if os.path.exists(mask_path):
+        return False
+    
+    try:
+        mask = generate_mask(image_path)
+        cv.imwrite(mask_path, mask)
+        return True
+    except Exception as e:
+        return False
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("path", help="dataset root path")
+    parser.add_argument("--source_path", help="dataset root path")
+    parser.add_argument("--num_workers", type=int, default=None, 
+                        help="Number of parallel workers (default: number of CPU cores)")
+    
     args = parser.parse_args()
 
-    dataset_root = args.path
-
-    # TODO: Parse input folder and save generated masks
+    dataset_root = args.source_path
+    num_workers = args.num_workers or max(1, multiprocessing.cpu_count() - 1)
+    
+    print(f"Using {num_workers} workes")
+    os.makedirs(os.path.join(dataset_root, "masks"), exist_ok=True)
+    
+    tasks = []
+    for folder in os.listdir(dataset_root):
+        if folder in ["train", "val", "test"]:
+            os.makedirs(os.path.join(dataset_root, "masks", folder), exist_ok=True)
+            for subfolder in os.listdir(os.path.join(dataset_root, folder)):
+                os.makedirs(os.path.join(dataset_root, "masks", folder, subfolder), exist_ok=True)
+                for image_file in os.listdir(os.path.join(dataset_root, folder, subfolder)):
+                    image_path = os.path.join(dataset_root, folder, subfolder, image_file)
+                    mask_path = os.path.join(dataset_root, "masks", folder, subfolder, image_file.replace(".jpg", "_mask.jpg"))
+                    tasks.append((image_path, mask_path))
+    
+    processed_count = 0
+    with concurrent.futures.ProcessPoolExecutor(max_workers=num_workers) as executor:
+        results = list(tqdm(executor.map(process_image, tasks), total=len(tasks), desc="Generating masks"))
+        processed_count = sum(results)
+    
+    print(f"Processed {processed_count} new images. {len(tasks) - processed_count} were already processed or failed.")
