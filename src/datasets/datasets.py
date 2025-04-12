@@ -144,7 +144,7 @@ def build_transform(is_train, args):
 
     t.append(transforms.ToTensor())
     t.append(transforms.Normalize(mean, std))
-    print(t)
+    # print(t)
     return transforms.Compose(t)
 
 
@@ -255,7 +255,7 @@ class LocalISICDataset(Dataset):
         self.skin_fomer = skin_former
 
         # Probability of applying skin transformations to dark
-        self.group_shift_probs = [0.1, 0.33, 0, 0] 
+        self.group_shift_probs = [0.2, 0.4, 0, 0] 
         
         if augment_transforms is None:
             self.augment_transforms = None
@@ -307,8 +307,8 @@ class LocalISICDataset(Dataset):
             self.samples_with_skin = []
             skin_info_dict = {}
             for _, row in self.skin_data.iterrows():
-                print(row)
-                print(row.keys())
+                # print(row)
+                # print(row.keys())
                 img_name = row['image_name']
                 if 'group' in self.skin_data.columns:
                     skin_info_dict[img_name] = {'ita': row['ita'], 'group': row['group']}
@@ -367,24 +367,25 @@ class LocalISICDataset(Dataset):
             shift_prob = self.group_shift_probs[group]
             if random.random() < shift_prob:
                 # Apply transformation
-                mask = cv2.imread(mask)
+                mask = 1 - cv2.imread(mask)[:, :, 0] / 255
                 assert len(mask.shape) == 2 or mask.shape[-1] == 1, "Mask has to be grayscale"
+                assert mask.min() >= 0 and mask.max() <= 1, "Mask values have to be in [0,1]"
 
                 # # Dummy mask, remove me!
                 # if len(mask.shape) == 3:
                 #     mask = np.zeros_like(np_image[:,:,0])
                 #     mask[:224,:224] = 1
 
-                # Min and max ita in our darkest groups
-                target_ita = random.random() * 28 
-                delta_ita = ita - target_ita
+                # Max ita in our darkest groups (28)
+                target_ita = random.random() * 38 - 10
+                delta_ita = float(ita) - target_ita
 
                 np_image[:, :, 2] += (mask * delta_ita * 0.5).astype(np.uint)   # Shift b
                 np_image[:, :, 0] -= (mask * delta_ita * 0.12).astype(np.uint)  # Shift L
 
                 # New label
                 target = ita_to_group(target_ita)
-
+            
             image = Image.fromarray(np_image)
             
         if target == 1 and self.split == 'train' and augment_type != "original" and self.augment_transforms is not None:
