@@ -2,7 +2,7 @@ import torch.nn as nn
 from .backbones.ConvNeXt import convnext_tiny, convnext_small, convnext_base, convnext_large
 
 class MelanomaClassifier(nn.Module):
-    def __init__(self, model_name='convnext_tiny', num_classes=2, pretrained=True):
+    def __init__(self, model_name='convnext_tiny', num_classes=2, pretrained=True, in_22k=False):
         """
         Initialize the Melanoma Classification model
         
@@ -14,20 +14,23 @@ class MelanomaClassifier(nn.Module):
         super().__init__()
         
         if model_name == 'convnext_tiny':
-            self.model = convnext_tiny(pretrained=pretrained)
+            self.model = convnext_tiny(pretrained=pretrained, in_22k=in_22k)
             self.model.head = nn.Linear(768, num_classes)
                 
         elif model_name == 'convnext_small':
-            self.model = convnext_small(pretrained=pretrained)
+            self.model = convnext_small(pretrained=pretrained, in_22k=in_22k)
             self.model.head  = nn.Linear(768, num_classes)
                 
         elif model_name == 'convnext_base':
-            self.model = convnext_base(pretrained=pretrained)
+            self.model = convnext_base(pretrained=pretrained, in_22k=in_22k)
             self.model.head  = nn.Linear(1024, num_classes)
                 
         elif model_name == 'convnext_large':
-            self.model = convnext_large(pretrained=pretrained)
+            self.model = convnext_large(pretrained=pretrained, in_22k=in_22k)
             self.model.head  = nn.Linear(1536, num_classes)
+        elif model_name == 'convnext_xlarge':
+            self.model = convnext_large(pretrained=pretrained, in_22k=True)
+            self.model.head  = nn.Linear(2048, num_classes)
         else:
             raise ValueError(f"Unsupported model name: {model_name}")
             

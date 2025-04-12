@@ -75,12 +75,13 @@ class RecallCrossEntropy(nn.Module):
       return loss.mean()
         
 class DomainIndependentLoss(nn.Module):
-   def __init__(self, num_classes, num_domains, weight=None):
+   def __init__(self, num_classes, num_domains, weight=None, conditional_accuracy=False):
       super(DomainIndependentLoss, self).__init__()
       self.num_classes = num_classes
       self.criterion = F.nll_loss
       self.weight = weight
       self.num_domains = num_domains
+      self.conditional_accuracy = conditional_accuracy
       
    def forward(self, logits, targets, groups):
       domain_dependant_targets = 2 * groups + targets
@@ -92,6 +93,7 @@ class DomainIndependentLoss(nn.Module):
       logits = torch.cat(output, dim=1)
       loss = self.criterion(logits, domain_dependant_targets, weight=self.weight)
       return loss
+   
       
 def labels_to_class_weights(samples, ifw_by_skin_type = False, num_classes=2, alpha=0.5, beta=0.5):
    """

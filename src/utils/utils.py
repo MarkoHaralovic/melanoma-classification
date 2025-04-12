@@ -524,6 +524,16 @@ def compute_preds_sum_out(outputs, num_classes, num_domains):
     
     return predictions
 
+def compute_preds_conditional(outputs, num_classes, num_domains, groups):
+    predictions = torch.zeros(outputs.shape[0], dtype=torch.int64).to(outputs.device)
+    for i in range(num_domains):
+        _ids = (groups == i)
+        if _ids.sum() > 0:
+            _logits = outputs[_ids, i * num_classes:(i + 1) * num_classes]
+            _pred = torch.argmax(_logits, axis=1)
+            predictions[_ids] = _pred
+    return predictions
+
 def get_metrics(y_true, y_pred, groups):
     """
         y_true: list of true labels

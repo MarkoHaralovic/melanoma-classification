@@ -283,7 +283,8 @@ def train(args):
         criterion = DomainIndependentLoss(
             num_classes = args.num_classes,
             num_domains = args.num_groups,
-            weight = class_weights
+            weight = class_weights,
+            conditional_accuracy = args.conditional_accuracy
         )
     elif mixup_fn is not None:
         criterion = SoftTargetCrossEntropy()
@@ -465,6 +466,8 @@ if __name__ == '__main__':
                         help='Use Recall Cross Entropy loss')
     parser.add_argument('--domain_independent_loss', action='store_true', default=False,
                         help='Use Domain Independent Loss')
+    parser.add_argument('--conditional_accuracy', action=bool, default=False,
+                        help='Use Conditional Accuracy for Domain Independent Loss')
     
     # Optimizer parameters
     parser.add_argument('--opt', default='adamw', type=str, metavar='OPTIMIZER',

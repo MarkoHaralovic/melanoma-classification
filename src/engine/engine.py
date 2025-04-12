@@ -1,18 +1,10 @@
-# Copyright (c) Meta Platforms, Inc. and affiliates.
-
-# All rights reserved.
-
-# This source code is licensed under the license found in the
-# LICENSE file in the root directory of this source tree.
-
-
 import math
 from typing import Iterable, Optional
 import torch
 from timm.data import Mixup
 from timm.utils import accuracy, ModelEma
 
-from ..models.losses.criterion import DomainIndependentLoss
+from ..models.losses.criterion import DomainIndependentLoss, DomainConditionalLoss
 from ..utils import utils
 
 def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
@@ -186,12 +178,15 @@ def evaluate(data_loader, model, device, use_amp=False, criterion=None):
             else:
                 loss = criterion(output, target)
 
-        if not isinstance(criterion, DomainIndependentLoss):
-            preds = utils._eval(output, target)[0]
-            acc1 = accuracy(output, target, topk=(1,5))[0]
-        else:
+        if isinstance(criterion, DomainIndependentLoss) and not criterion.conditional_accuracy:
             preds = utils.compute_preds_sum_out(output,criterion.num_classes, criterion.num_domains)
             acc1 = (preds == target).float().sum() / target.shape[0]
+        elif isinstance(criterion, DomainIndependentLoss) and criterion.conditional_accuracy:
+            preds = utils.compute_preds_conditional(output,criterion.num_classes, criterion.num_domains, group)
+            acc1 = (preds == target).float().sum() / target.shape[0]
+        else:
+            preds = utils._eval(output, target)[0]
+            acc1 = accuracy(output, target, topk=(1,5))[0]
             
         y_true.extend(target.cpu().tolist())
         y_pred.extend(preds.cpu().tolist())
