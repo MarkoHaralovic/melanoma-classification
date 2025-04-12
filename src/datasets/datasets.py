@@ -359,7 +359,7 @@ class LocalISICDataset(Dataset):
           
         if not self.use_cielab:
             image = Image.open(image_path).convert('RGB')
-        elif self.use_cielab and not self.skin_fomer:
+        elif (self.use_cielab and not self.skin_fomer) or self.split != 'train':
             image = Image.fromarray(cv2.cvtColor(cv2.imread(image_path), cv2.COLOR_BGR2LAB))
         else:
             np_image = cv2.cvtColor(cv2.imread(image_path), cv2.COLOR_BGR2LAB)
