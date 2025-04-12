@@ -384,7 +384,7 @@ class LocalISICDataset(Dataset):
                 np_image[:, :, 0] -= (mask * delta_ita * 0.12).astype(np.uint)  # Shift L
 
                 # New label
-                target = ita_to_group(target_ita)
+                group = ita_to_group(target_ita)
             
             image = Image.fromarray(np_image)
             
