@@ -148,8 +148,9 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
     return {k: meter.global_avg for k, meter in metric_logger.meters.items()}
 
 @torch.no_grad()
-def evaluate(data_loader, model, device, use_amp=False):
-    criterion = torch.nn.CrossEntropyLoss()
+def evaluate(data_loader, model, device, use_amp=False, criterion=None):
+    if criterion is None:
+        criterion = torch.nn.CrossEntropyLoss()
 
     metric_logger = utils.MetricLogger(delimiter="  ")
     header = 'Test:'
@@ -179,6 +180,7 @@ def evaluate(data_loader, model, device, use_amp=False):
                     loss = criterion(output, target)
         else:
             output = model(images)
+
             if isinstance(criterion, DomainIndependentLoss):
                 loss = criterion(output, target, group)
             else:
@@ -188,9 +190,7 @@ def evaluate(data_loader, model, device, use_amp=False):
             preds = utils._eval(output, target)[0]
             acc1 = accuracy(output, target, topk=(1,5))[0]
         else:
-            preds = utils.compute_preds_sum_out(output, target, criterion.num_classes, criterion.num_domains)
-            import pdb
-            pdb.set_trace()
+            preds = utils.compute_preds_sum_out(output,criterion.num_classes, criterion.num_domains)
             acc1 = (preds == target).float().sum() / target.shape[0]
             
         y_true.extend(target.cpu().tolist())
@@ -207,7 +207,6 @@ def evaluate(data_loader, model, device, use_amp=False):
           .format(top1=metric_logger.acc1, losses=metric_logger.loss))
 
     malignant_recall, malignant_precision, malignant_f1, malignant_dpd = utils.get_metrics(y_true, y_pred, groups)
-    pdb.set_trace()
     
     metric_logger.meters['malignant_recall'].update(malignant_recall)
     metric_logger.meters['malignant_precision'].update(malignant_precision)
