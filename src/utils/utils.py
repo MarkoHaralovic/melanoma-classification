@@ -534,6 +534,14 @@ def compute_preds_conditional(outputs, num_classes, num_domains, groups):
             predictions[_ids] = _pred
     return predictions
 
+def compute_accuracy_sum_prob_wo_prior_shift(probs, num_classes, num_domains):
+    domain_probs = []
+    for i in range(num_domains):
+        domain_probs.append(probs[:, i * num_classes:(i + 1) * num_classes])
+    summed_probs = torch.stack(domain_probs, dim=0).sum(dim=0)
+    predictions = torch.argmax(summed_probs, axis=1)
+    return predictions
+
 def get_metrics(y_true, y_pred, groups):
     """
         y_true: list of true labels

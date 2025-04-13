@@ -4,7 +4,7 @@ import torch
 from timm.data import Mixup
 from timm.utils import accuracy, ModelEma
 
-from ..models.losses.criterion import DomainIndependentLoss
+from ..models.losses.criterion import DomainIndependentLoss, DomainDiscriminativeLoss
 from ..utils import utils
 
 def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
@@ -86,11 +86,15 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
             torch.cuda.synchronize()
 
         if mixup_fn is None:
-            if not isinstance(criterion, DomainIndependentLoss):
-                class_acc = (output.max(-1)[-1] == targets).float().mean()
-            else:
+            if isinstance(criterion, DomainIndependentLoss):
                 preds = utils.compute_preds_sum_out(output, criterion.num_classes, criterion.num_domains)
                 class_acc = (preds == targets).float().sum() / targets.shape[0]
+            elif isinstance(criterion, DomainDiscriminativeLoss):
+                probs = criterion.get_probs(output)
+                preds = utils.compute_accuracy_sum_prob_wo_prior_shift(probs, criterion.num_classes, criterion.num_domains)
+                class_acc = (preds == targets).float().sum() / targets.shape[0]
+            else:
+                class_acc = (output.max(-1)[-1] == targets).float().mean()
         else:
             class_acc = None
             
@@ -183,6 +187,10 @@ def evaluate(data_loader, model, device, use_amp=False, criterion=None):
             acc1 = (preds == target).float().sum() / target.shape[0]
         elif isinstance(criterion, DomainIndependentLoss) and criterion.conditional_accuracy:
             preds = utils.compute_preds_conditional(output,criterion.num_classes, criterion.num_domains, group)
+            acc1 = (preds == target).float().sum() / target.shape[0]
+        elif isinstance(criterion, DomainDiscriminativeLoss):
+            probs = criterion.get_probs(output)
+            preds = utils.compute_accuracy_sum_prob_wo_prior_shift(probs, criterion.num_classes, criterion.num_domains)
             acc1 = (preds == target).float().sum() / target.shape[0]
         else:
             preds = utils._eval(output, target)[0]

@@ -97,14 +97,18 @@ class DomainIndependentLoss(nn.Module):
    
    
 class DomainDiscriminativeLoss(nn.Module):
-   def __init__(self, weight=None, ):
+   def __init__(self, num_classes, num_domains, weight=None, ):
       super(DomainDiscriminativeLoss, self).__init__()
       self.criterion = F.cross_entropy
+      self.num_classes = num_classes
+      self.num_domains = num_domains
       self.weight = weight
       
    def forward(self, logits, targets):
       return self.criterion(logits, targets, weight=self.weight)
-   
+   def get_probs(self, logits):
+      return F.softmax(logits, dim=1).detach()
+    
 class FocalLoss(nn.Module):
     def __init__(self, gamma=0, alpha=None, size_average=True):
         super(FocalLoss, self).__init__()

@@ -13,9 +13,10 @@ from timm.loss import LabelSmoothingCrossEntropy, SoftTargetCrossEntropy
 from timm.utils import ModelEma
 
 import torchvision.transforms as transforms
+from torchsampler import ImbalancedDatasetSampler
 
 from src.models.melanoma_classifier import MelanomaClassifier
-from src.models.losses.criterion import OhemCrossEntropy,RecallCrossEntropy,DomainIndependentLoss, labels_to_class_weights
+from src.models.losses.criterion import OhemCrossEntropy,RecallCrossEntropy,DomainIndependentLoss, DomainDiscriminativeLoss, FocalLoss, labels_to_class_weights
 from src.engine.engine import train_one_epoch, evaluate
 from src.utils.utils import NativeScalerWithGradNormCount as NativeScaler
 from src.models.optim_factory import create_optimizer, LayerDecayValueAssigner
@@ -142,10 +143,14 @@ def train(args):
         logging.info(f"Validation dataset groups: {val_dataset.groups}")
         logging.info(f"Validation dataset group distribution: {val_dataset.group}")
         
-    from torchsampler import ImbalancedDatasetSampler
+    from torch.utils.data.sampler import RandomSampler
+
+    train_sampler = RandomSampler(train_dataset, replacement=True, num_samples=200) if not args.oversample_malignant else ImbalancedDatasetSampler(train_dataset)
+    val_sampler = RandomSampler(val_dataset, replacement=True, num_samples=1000)
+    
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
-        sampler=ImbalancedDatasetSampler(train_dataset) if args.oversample_malignant else None,
+        sampler=ImbalancedDatasetSampler(train_dataset) if args.oversample_malignant else train_sampler,
         batch_size=args.batch_size,
         shuffle=False,
         num_workers=args.num_workers,
@@ -155,13 +160,13 @@ def train(args):
     
     val_loader = torch.utils.data.DataLoader(
         val_dataset,
+        sampler = val_sampler,
         batch_size=args.batch_size,
         shuffle=False,
         num_workers=args.num_workers,
         pin_memory=args.pin_mem,
         drop_last=False
     )
-    
     
     log_writer = None
     if args.output_dir:
@@ -172,7 +177,9 @@ def train(args):
         ohem = "_ohem" if args.ohem else ""
         recall_ce = "_recall_ce" if args.recall_ce else ""
         amp = "_amp" if args.use_amp else ""
-        run_name = f"{run_name}{ifw}{ohem}{recall_ce}{amp}"
+        dil = "_domain_independent_loss" if args.domain_independent_loss else ""
+        focal_loss = "_focal_loss" if args.focal_loss else ""
+        run_name = f"{run_name}{ifw}{ohem}{recall_ce}{amp}{dil}{focal_loss}"
         
         args.output_dir = os.path.join(args.output_dir, run_name)
         os.makedirs(args.output_dir, exist_ok=True)
@@ -282,12 +289,24 @@ def train(args):
         criterion = RecallCrossEntropy(
             n_classes=args.num_classes, 
             weight = class_weights)
+    elif args.focal_loss:
+        criterion = FocalLoss(
+            gamma=2.0, 
+            alpha=class_weights, 
+            size_average=True
+        )
     elif args.domain_independent_loss:
         criterion = DomainIndependentLoss(
             num_classes = args.num_classes,
             num_domains = args.num_groups,
             weight = class_weights,
             conditional_accuracy = args.conditional_accuracy
+        )
+    elif args.domain_discriminative_loss:
+        criterion = DomainDiscriminativeLoss(
+            num_classes = args.num_classes,
+            num_domains = args.num_groups,
+            weight = class_weights
         )
     elif mixup_fn is not None:
         criterion = SoftTargetCrossEntropy()
@@ -471,8 +490,12 @@ if __name__ == '__main__':
                         help='Use inverse frequency weighting.')
     parser.add_argument('--recall_ce', action='store_true', default=False,
                         help='Use Recall Cross Entropy loss')
+    parser.add_argument('--focal_loss', action='store_true', default=False,
+                        help='Use Focal loss')
     parser.add_argument('--domain_independent_loss', action='store_true', default=False,
                         help='Use Domain Independent Loss')
+    parser.add_argument('--domain_discriminative_loss', action='store_true', default=False,
+                        help='Use Domain Discriminative Loss')
     parser.add_argument('--conditional_accuracy', type=str2bool)
     
     # Optimizer parameters
