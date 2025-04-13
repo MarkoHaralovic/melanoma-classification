@@ -11,7 +11,8 @@ fi
 python melanoma_train.py \
       --data_path "C:/lumen_melanoma_classification/melanoma-classification/isic2020_challenge" \
       --skin_color_csv "C:/lumen_melanoma_classification/melanoma-classification/isic2020_challenge/ISIC_2020_full.csv" \
-      --model convnext_tiny \
+      --model efficientnetv2_s \
+      --in_22k False \
       --batch_size 8 \
       --epochs 10 \
       --device $DEVICE \
@@ -30,4 +31,5 @@ python melanoma_train.py \
       --cielab \
       --weight_decay 0.0001 \
       --lr 0.0001 \
-      --output_dir "C:\lumen_melanoma_classification\melanoma-classification\melanoma_classifier_output" 
+      --output_dir "C:\lumen_melanoma_classification\melanoma-classification\melanoma_classifier_output" \
+      --oversample_malignant 

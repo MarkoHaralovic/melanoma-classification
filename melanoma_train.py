@@ -198,7 +198,8 @@ def train(args):
     model = MelanomaClassifier(
         model_name=args.model,
         num_classes=args.num_classes * args.num_groups, 
-        pretrained=args.pretrained
+        pretrained=args.pretrained,
+        in_22k = args.in_22k
     )
     model = model.to(device)
     model_without_ddp = model
@@ -432,7 +433,9 @@ if __name__ == '__main__':
                         help='Path for tensorboard logs')
     
     parser.add_argument('--model', default='convnext_tiny', type=str,
-                        choices=['convnext_tiny', 'convnext_small', 'convnext_base', 'convnext_large'],
+                        choices=['convnext_tiny', 'convnext_small', 'convnext_base', 'convnext_large',
+                        'efficientnetv2_b0', 'efficientnetv2_b1', 'efficientnetv2_b2', 'efficientnetv2_b3', 'efficientnetv2_m', 'efficientnetv2_l', 'efficientnetv2_s', 'efficientnetv2_xl' 
+                        ],
                         help='Model architecture to use')
     parser.add_argument('--num_classes', default=2, type=int,
                         help='Number of output classes')
@@ -440,6 +443,8 @@ if __name__ == '__main__':
                         help = "Number of skin color groups")
     parser.add_argument('--pretrained', default=True, type=str2bool,
                         help='Use pretrained weights')
+    parser.add_argument('--in_22k', default=False, type=str2bool,
+                        help='Use pretrained weights on ImageNet22k')
     parser.add_argument('--input_size', default=224, type=int,
                         help='Input image size')
     parser.add_argument('--drop_path', type=float, default=0.1,
