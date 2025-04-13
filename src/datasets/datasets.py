@@ -226,7 +226,7 @@ class KaggleISICDataset(Dataset):
         return image, target, group
     
 class LocalISICDataset(Dataset):
-    def __init__(self, root, transform = None, skin_color_csv = None, augment_transforms = None, split = 'train', cielab=False, skin_former = False):
+    def __init__(self, root, transform = None, skin_color_csv = None, augment_transforms = None, split = 'train', cielab=False, skin_former = False, segment_out_skin = False):
         """
         Args:
             root (str or ``pathlib.Path``): Root directory path.
@@ -237,14 +237,18 @@ class LocalISICDataset(Dataset):
                 - fitzpatrick_scale: The Fitzpatrick scale is a numerical classification schema for human skin color. 
                 - group : Each patient is classified into one of the groups based on his skin color type.
             augment_transforms (dict): Dictionary containing augmentations to be applied on malignant cases.
+            transform (callable, optional): Optional transform to be applied on an image.
+            split (str): 'train' or 'valid', determines which subset to use.
             cielab (bool): If True, convert images to CIELAB color space.
             skin_former (bool): If True, use skin-former augmentation.
+            segment_out_skin (bool): If True, segment out skin from the image.
         """
         
         self.root = root
         self.transform = transform
         self.split = split
         self.skin_fomer = skin_former
+        self.segment_out_skin = segment_out_skin
 
         # Probability of applying skin transformations to dark
         self.group_shift_probs = [0.2, 0.4, 0, 0] 
@@ -307,7 +311,7 @@ class LocalISICDataset(Dataset):
                 img_filename = os.path.basename(path)
                 
                 if img_filename in skin_info_dict:
-                    if not skin_former:
+                    if not skin_former and not segment_out_skin:
                         self.samples_with_skin.append((path, label, skin_info_dict[img_filename]['group']))
                     else:
                         self.samples_with_skin.append((path, label, skin_info_dict[img_filename]['group'], skin_info_dict[img_filename]['ita'], mask))
@@ -340,7 +344,7 @@ class LocalISICDataset(Dataset):
         
         if isinstance(self.samples[adjusted_idx], tuple) and len(self.samples[adjusted_idx]) == 3 and not self.skin_fomer:
             image_path, target, group = self.samples[adjusted_idx]
-        elif isinstance(self.samples[adjusted_idx], tuple) and len(self.samples[adjusted_idx]) == 5 and self.skin_fomer:
+        elif isinstance(self.samples[adjusted_idx], tuple) and len(self.samples[adjusted_idx]) == 5 and (self.skin_fomer or self.segment_out_skin):
             image_path, target, group, ita, mask = self.samples[adjusted_idx]
         else:
             image_path, target = self.samples[adjusted_idx]
@@ -348,9 +352,9 @@ class LocalISICDataset(Dataset):
           
         if not self.use_cielab:
             image = Image.open(image_path).convert('RGB')
-        elif (self.use_cielab and not self.skin_fomer) or self.split != 'train':
+        elif (self.use_cielab and not self.skin_fomer and not self.segment_out_skin) or (self.split != 'train' and not self.segment_out_skin):
             image = Image.fromarray(cv2.cvtColor(cv2.imread(image_path), cv2.COLOR_BGR2LAB))
-        else:
+        elif self.use_cielab and self.skin_fomer:
             np_image = cv2.cvtColor(cv2.imread(image_path), cv2.COLOR_BGR2LAB)
             
             shift_prob = self.group_shift_probs[group]
@@ -374,6 +378,12 @@ class LocalISICDataset(Dataset):
 
                 # New label
                 group = ita_to_group(target_ita)
+        else:
+            np_image = cv2.cvtColor(cv2.imread(image_path), cv2.COLOR_BGR2LAB)
+            mask = cv2.imread(mask)[:, :, 0] / 255
+            np_image = np_image.astype(np.float32)
+            np_image *= mask[:, :, np.newaxis]
+            np_image = np.clip(np_image, 0, 255).astype(np.uint8)
             
             image = Image.fromarray(np_image)
             

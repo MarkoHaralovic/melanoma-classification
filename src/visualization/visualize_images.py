@@ -47,7 +47,8 @@ def main(args):
                               split='valid',
                               skin_color_csv=args.skin_color_csv,
                               cielab=args.cielab,
-                              skin_former=args.skin_former
+                              skin_former=args.skin_former,
+                              segment_out_skin=args.segment_out_skin,
                               )
    dataloader = torch.utils.data.DataLoader(
         dataset,
@@ -102,7 +103,8 @@ if __name__ == '__main__':
                      help='Load images to CIELab colorspace')
    parser.add_argument('--skin_former', action='store_true', default=False,
                      help='Transform lighter skin types to darker ones')
-
+   parser.add_argument('--segment_out_skin', type=str2bool, default=True,
+                     help='Segment out skin from images')
   
    parser.add_argument('--device', default='cuda:0', type=str,
                      help='Device to use for training')

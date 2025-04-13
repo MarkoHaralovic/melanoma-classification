@@ -11,7 +11,7 @@ import os
 import uuid
 from pathlib import Path
 
-import main as classification
+import melanoma_train as classification
 import submitit
 
 def parse_args():
@@ -49,7 +49,7 @@ class Trainer(object):
         self.args = args
 
     def __call__(self):
-        import main as classification
+        import melanoma_train as classification
 
         self._setup_gpu_args()
         classification.main(self.args)
