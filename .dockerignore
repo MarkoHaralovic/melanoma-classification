@@ -2,8 +2,11 @@
 **/__pycache__/**
 .idea/*
 ckpt/
-*.pth
 *.log
-*.txt
-.dockerignore
-.gitignore
+/pretrained_weights
+/log_dir
+melanoma_classifier_output
+isic2020_challenge
+preparer/*
+.venv
+.vscode

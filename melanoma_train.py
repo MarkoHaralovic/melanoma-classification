@@ -147,12 +147,10 @@ def train(args):
         
     from torch.utils.data.sampler import RandomSampler
 
-    train_sampler = RandomSampler(train_dataset, replacement=True, num_samples=200) if not args.oversample_malignant else ImbalancedDatasetSampler(train_dataset)
-    val_sampler = RandomSampler(val_dataset, replacement=True, num_samples=1000)
     
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
-        sampler=ImbalancedDatasetSampler(train_dataset) if args.oversample_malignant else train_sampler,
+        sampler=ImbalancedDatasetSampler(train_dataset) if args.oversample_malignant else None,
         batch_size=args.batch_size,
         shuffle=False,
         num_workers=args.num_workers,
@@ -162,7 +160,7 @@ def train(args):
     
     val_loader = torch.utils.data.DataLoader(
         val_dataset,
-        sampler = val_sampler,
+        sampler = None,
         batch_size=args.batch_size,
         shuffle=False,
         num_workers=args.num_workers,

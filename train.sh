@@ -28,7 +28,7 @@ python melanoma_train.py \
     --update_freq 1 \
     --ifw  \
     --domain_discriminative_loss \
-    --segment_out_skin \
+    --segment_out_skin True \
     --cielab \
     --weight_decay 0.0001 \
     --lr 0.0001 \
