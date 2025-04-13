@@ -142,10 +142,12 @@ def train(args):
         logging.info(f"Validation dataset groups: {val_dataset.groups}")
         logging.info(f"Validation dataset group distribution: {val_dataset.group}")
         
+    from torchsampler import ImbalancedDatasetSampler
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
+        sampler=ImbalancedDatasetSampler(train_dataset) if args.oversample_malignant else None,
         batch_size=args.batch_size,
-        shuffle=True,
+        shuffle=False,
         num_workers=args.num_workers,
         pin_memory=args.pin_mem,
         drop_last=True
@@ -466,8 +468,7 @@ if __name__ == '__main__':
                         help='Use Recall Cross Entropy loss')
     parser.add_argument('--domain_independent_loss', action='store_true', default=False,
                         help='Use Domain Independent Loss')
-    parser.add_argument('--conditional_accuracy', action=bool, default=False,
-                        help='Use Conditional Accuracy for Domain Independent Loss')
+    parser.add_argument('--conditional_accuracy', type=str2bool)
     
     # Optimizer parameters
     parser.add_argument('--opt', default='adamw', type=str, metavar='OPTIMIZER',
@@ -493,6 +494,8 @@ if __name__ == '__main__':
     parser.add_argument('--layer_decay', type=float, default=1.0)
     
     # Augmentation parameters
+    parser.add_argument('--oversample_malignant', action='store_true', default=False,
+                        help='Oversample malignant lesions')
     parser.add_argument('--smoothing', type=float, default=0.1,
                         help='Label smoothing value')
     parser.add_argument('--mixup', type=float, default=0.0,

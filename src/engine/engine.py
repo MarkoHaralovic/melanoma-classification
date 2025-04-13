@@ -4,7 +4,7 @@ import torch
 from timm.data import Mixup
 from timm.utils import accuracy, ModelEma
 
-from ..models.losses.criterion import DomainIndependentLoss, DomainConditionalLoss
+from ..models.losses.criterion import DomainIndependentLoss
 from ..utils import utils
 
 def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
@@ -89,7 +89,7 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
             if not isinstance(criterion, DomainIndependentLoss):
                 class_acc = (output.max(-1)[-1] == targets).float().mean()
             else:
-                preds = utils.compute_preds_sum_out(output, targets, criterion.num_classes, criterion.num_domains)
+                preds = utils.compute_preds_sum_out(output, criterion.num_classes, criterion.num_domains)
                 class_acc = (preds == targets).float().sum() / targets.shape[0]
         else:
             class_acc = None

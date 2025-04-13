@@ -294,13 +294,10 @@ class LocalISICDataset(Dataset):
         
         if skin_color_csv is not None:
             self.skin_data = pd.read_csv(skin_color_csv, sep=';')
-            # self.skin_data = pd.read_csv(skin_color_csv, sep=',')
             
             self.samples_with_skin = []
             skin_info_dict = {}
             for _, row in self.skin_data.iterrows():
-                # print(row)
-                # print(row.keys())
                 img_name = row['image_name']
                 if 'group' in self.skin_data.columns:
                     skin_info_dict[img_name] = {'ita': row['ita'], 'group': row['group']}
@@ -390,4 +387,33 @@ class LocalISICDataset(Dataset):
 
     def get_class_distribution(self):
         return self.class_distribution
-       
+    
+    def get_labels(self):
+        if self.augment_transforms is None or self.split != 'train':
+            labels = []
+            for sample in self.samples:
+                if isinstance(sample, tuple) and len(sample) >= 2:
+                    labels.append(sample[1])
+                else:
+                    img_data, _ = sample
+                    _, target = img_data
+                    labels.append(target)
+            return labels
+        else:
+            labels = []
+            for idx in range(len(self)):
+                if idx < self.benign_count:
+                    sample = self.samples[idx]
+                else:
+                    adjusted_idx = self.benign_count + ((idx - self.benign_count) // self.oversample_ratio)
+                    if adjusted_idx >= len(self.samples):
+                        adjusted_idx = self.benign_count + ((adjusted_idx - self.benign_count) % self.malignant_count)
+                    sample = self.samples[adjusted_idx]
+                
+                if isinstance(sample, tuple) and len(sample) >= 2:
+                    labels.append(sample[1])
+                else:
+                    img_data, _ = sample
+                    _, target = img_data
+                    labels.append(target)
+            return labels
