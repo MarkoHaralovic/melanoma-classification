@@ -80,7 +80,7 @@ RUN cd /opt/ &&\
     rm -rf /opt/opencv-${OPENCV_VERSION} && rm -rf /opt/opencv_contrib-${OPENCV_VERSION}
 
 # install othere ffcv dependencies
-RUN pip3 install cupy-cuda113 numba
+# RUN pip3 install cupy-cuda113 numba
 
 RUN apt-get update -y
 RUN apt-get install -y libturbojpeg0-dev 
