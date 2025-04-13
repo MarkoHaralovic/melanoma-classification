@@ -90,22 +90,24 @@ def train(args):
         
     if not args.kaggle:
         train_dataset = LocalISICDataset(args.data_path, 
-                                         transform=transform,
-                                         augment_transforms = malignant_class_transform,
-                                         split='train',
-                                         skin_color_csv=args.skin_color_csv,
-                                         cielab=args.cielab,
-                                         skin_former=args.skin_former
+                                        transform=transform,
+                                        augment_transforms = malignant_class_transform,
+                                        split='train',
+                                        skin_color_csv=args.skin_color_csv,
+                                        cielab=args.cielab,
+                                        skin_former=args.skin_former,
+                                        segment_out_skin = args.segment_out_skin
                                          )
 
         
         val_dataset = LocalISICDataset(args.data_path, 
-                                         transform=transform,
-                                         augment_transforms = None,
-                                         split='valid',
-                                         skin_color_csv=args.skin_color_csv,
-                                         cielab=args.cielab,
-                                         skin_former=args.skin_former
+                                        transform=transform,
+                                        augment_transforms = None,
+                                        split='valid',
+                                        skin_color_csv=args.skin_color_csv,
+                                        cielab=args.cielab,
+                                        skin_former=args.skin_former,
+                                        segment_out_skin = args.segment_out_skin
                                          )
     else:
         train_dataset = KaggleISICDataset(args.kaggle_csv_file, 
@@ -542,7 +544,8 @@ if __name__ == '__main__':
                         help='Load images to CIELab colorspace')
     parser.add_argument('--skin_former', action='store_true', default=False,
                         help='Transform lighter skin types to darker ones')
-
+    parser.add_argument('--segment_out_skin', type=str2bool, default=False,
+                        help='Use skin segmentation to remove background')
     # Model EMA parameters
     parser.add_argument('--model_ema', type=str2bool, default=False,
                         help='Enable tracking moving average of model weights')
