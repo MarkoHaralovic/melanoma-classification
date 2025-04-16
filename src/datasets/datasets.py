@@ -378,6 +378,9 @@ class LocalISICDataset(Dataset):
 
                 # New label
                 group = ita_to_group(target_ita)
+            
+            image = Image.fromarray(np_image)
+        
         else:
             np_image = cv2.cvtColor(cv2.imread(image_path), cv2.COLOR_BGR2LAB)
             mask = cv2.imread(mask)[:, :, 0] / 255
