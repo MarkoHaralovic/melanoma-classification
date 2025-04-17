@@ -330,8 +330,6 @@ def train(args):
             
     if args.test:
         model.eval()
-        val_indices = torch.randperm(len(val_dataset))[:200]
-        val_dataset = torch.utils.data.Subset(val_dataset, val_indices)
         val_loader = torch.utils.data.DataLoader(
             val_dataset,
             batch_size=args.batch_size,
