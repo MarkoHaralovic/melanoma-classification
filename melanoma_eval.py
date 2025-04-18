@@ -35,13 +35,8 @@ def eval(args):
     )
     chkpt_args = checkpoint["args"]
 
-    print(chkpt_args)
-    import sys
-
-    sys.exit()
-
     # Data
-    if getattr(chkpt_args, "cielab", False):
+    if not getattr(chkpt_args, "cielab", False):
         transform = transforms.Compose(
             [
                 transforms.Resize((chkpt_args.input_size, chkpt_args.input_size)),
@@ -132,7 +127,7 @@ def eval(args):
     np.save(os.path.join(save_dir, "groups.npy"), groups)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser("Melanoma Classification Training")
+    parser = argparse.ArgumentParser("Melanoma Classification Evaluation")
 
     parser.add_argument("--model_dir", help="Model save directory")
     parser.add_argument(
