@@ -1,14 +1,10 @@
-timm==0.3.2 
+timm==0.9.16 
 tensorboardX 
 six
 submitit
-numpy==1.22
-cupy-cuda113 
+numpy==1.24.3
 numba
-ffcv
-torch==1.8.0
-torchvision==0.9.0
-torchaudio==0.8.0 
 fairlearn
 kneed
 torchsampler
+opencv-python

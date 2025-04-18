@@ -187,3 +187,30 @@ def convnext_xlarge(pretrained=False, in_22k=False, **kwargs):
         checkpoint = torch.hub.load_state_dict_from_url(url=url, map_location="cpu")
         model.load_state_dict(checkpoint["model"])
     return model
+
+def num_features(model_name):
+    if model_name == 'convnext_tiny':
+        return 768
+    elif model_name == 'convnext_small':
+        return 768
+    elif model_name == 'convnext_base':
+        return 1024
+    elif model_name == 'convnext_large':
+        return 1536
+    elif model_name == 'convnext_xlarge':
+        return 2048
+    else:
+        raise ValueError(f"Unsupported model name: {model_name}")
+    
+def create_convnext_model(model_name='convnext_tiny', pretrained=True, in_22k=False):
+    if model_name == 'convnext_tiny':
+        model = convnext_tiny(pretrained=pretrained, in_22k=in_22k)
+    elif model_name == 'convnext_small':
+        model = convnext_small(pretrained=pretrained, in_22k=in_22k)
+    elif model_name == 'convnext_base':
+        model = convnext_base(pretrained=pretrained, in_22k=in_22k)
+    elif model_name == 'convnext_large':
+        model = convnext_large(pretrained=pretrained, in_22k=in_22k)
+    elif model_name == 'convnext_xlarge':
+        model = convnext_xlarge(pretrained=pretrained, in_22k=True)
+    return model, num_features(model_name)

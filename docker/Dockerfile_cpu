@@ -1,14 +1,42 @@
-FROM python:3.8-slim
+FROM python:3.10.12-slim-bookworm
 
-RUN apt-get update 
+ENV DEBIAN_FRONTEND=noninteractive
 
 WORKDIR /melanoma-classification
 
-RUN pip install torch==1.8.0 torchvision==0.9.0 torchaudio==0.8.0 -f https://download.pytorch.org/whl/cpu/torch_stable.html
-RUN pip install timm==0.3.2 tensorboardX six 
-RUN pip install numpy==1.22
-RUN pip install submitit fairlearn kneed torchsampler tqdm
-RUN pip install opencv-python
+RUN apt-get update && apt-get install -y \
+   gcc \
+   libglib2.0-0 \
+   libsm6 \
+   libxext6 \
+   libxrender-dev \
+   dos2unix \
+   libgl1 \
+   libglib2.0-0 \
+   && rm -rf /var/lib/apt/lists/*
 
+RUN pip install --upgrade pip
+
+RUN pip install numpy==1.24.3
+
+RUN pip install \
+   torch==2.2.0+cpu \
+   torchvision==0.17.0+cpu \
+   torchaudio==2.2.0+cpu \
+   -f https://download.pytorch.org/whl/cpu/torch_stable.html
+
+RUN pip install \
+   timm==0.9.16 \
+   tensorboardX \
+   six \
+   submitit \
+   fairlearn \
+   kneed \
+   torchsampler \
+   tqdm \
+   opencv-python
 
 COPY ../ /melanoma-classification
+
+RUN find . -type f -name "*.sh" -exec dos2unix {} \;
+CMD ["/bin/bash"]
