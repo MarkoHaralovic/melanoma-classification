@@ -229,9 +229,6 @@ def train(args):
         )
         logging.info(f"Using EMA with decay = {args.model_ema_decay}")
     
-    n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    logging.info(f"Number of parameters: {n_parameters}")
-    
     mixup_fn = None
     if args.mixup > 0 or args.cutmix > 0 or args.cutmix_minmax is not None:
         logging.info("Mixup is activated!")

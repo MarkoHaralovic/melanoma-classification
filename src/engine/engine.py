@@ -195,7 +195,7 @@ def evaluate(data_loader, model, device, use_amp=False, criterion=None):
         else:
             preds = utils._eval(output, target)[0]
             acc1 = accuracy(output, target, topk=(1,5))[0]
-            
+
         y_true.extend(target.cpu().tolist())
         y_pred.extend(preds.cpu().tolist())
         groups.extend(group.cpu().tolist())

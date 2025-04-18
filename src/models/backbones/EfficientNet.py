@@ -10,7 +10,7 @@ def crete_efficientnet_v2_model(model_name='efficientnetv2_m', num_classes=2, pr
 
    Args:
       model_name (str): Name of the EfficientNet model variant to use.
-      num_classes (int): Number of output classes (0 for not initializing head).
+      num_classes (int): Number of output classes (e.g. 0 for not initializing head).
       pretrained (bool): Whether to use pretrained weights.
 
    Returns:

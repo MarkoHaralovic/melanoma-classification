@@ -1,6 +1,6 @@
 import timm
 
-def create_convnext_v2_model(model_name='convnextv2_atto', num_classes=0, pretrained=True, in22k=False):
+def create_convnext_v2_model(model_name='convnextv2_atto', num_classes=2, pretrained=True, in22k=False):
    """
    Create a ConvNeXtV2 model for image classification using timm.
 
