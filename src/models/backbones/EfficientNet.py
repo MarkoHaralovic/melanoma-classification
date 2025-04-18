@@ -17,7 +17,9 @@ def crete_efficientnet_v2_model(model_name='efficientnet_b0', num_classes=2, pre
       model: The EfficientNet model.
    """
 
-   model_name = 'tf_' + model_name
+   if not model_name.startswith('tf_'):
+      model_name = 'tf_' + model_name
+      
    model_name += '.in21k' if in22k else '.in21k_ft_in1k'
 
    print(f"Creating EfficientNet model: {model_name}")
