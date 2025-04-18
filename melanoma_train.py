@@ -210,7 +210,8 @@ def train(args):
         model_name=args.model,
         num_classes=args.num_classes * args.num_groups, 
         pretrained=args.pretrained,
-        in_22k = args.in_22k
+        in_22k = args.in_22k,
+        freeze_model=args.freeze_model
     )
     model = model.to(device)
     model_without_ddp = model
@@ -466,6 +467,8 @@ if __name__ == '__main__':
                         help = "Number of skin color groups")
     parser.add_argument('--pretrained', default=True, type=str2bool,
                         help='Use pretrained weights')
+    parser.add_argument('--freeze_model', default=False, type=str2bool,
+                        help='Freeze model weights')
     parser.add_argument('--in_22k', default=False, type=str2bool,
                         help='Use pretrained weights on ImageNet22k')
     parser.add_argument('--input_size', default=224, type=int,

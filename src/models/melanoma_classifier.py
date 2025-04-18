@@ -5,7 +5,7 @@ from .backbones.EfficientNet import crete_efficientnet_v2_model
 from .backbones.DinoV2 import create_dinov2_model
 
 class MelanomaClassifier(nn.Module):
-    def __init__(self, model_name='convnext_tiny', num_classes=2, pretrained=True, in_22k=False):
+    def __init__(self, model_name='convnext_tiny', num_classes=2, pretrained=True, in_22k=False, freeze_model=False):
         """
         Initialize the Melanoma Classification model
         
@@ -24,8 +24,8 @@ class MelanomaClassifier(nn.Module):
         elif model_name.__contains__('convnextv2'):
             self.model, self.num_features = create_convnext_v2_model(model_name=model_name, num_classes = num_classes, pretrained=pretrained, in22k=in_22k)
         elif model_name.__contains__('dinov2'):
-            self.model , self.num_features = create_dinov2_model(model_name=model_name, pretrained=pretrained, use_registers = True, freeze=True, register_buffer=None)
-            self.model.head.fc = nn.Linear(self.num_features, num_classes, bias=True)  
+            self.model , self.num_features = create_dinov2_model(model_name=model_name, pretrained=pretrained, use_registers = True, freeze=freeze_model, register_buffer=None)
+            self.model.head = nn.Linear(self.num_features, num_classes, bias=True)  
         else:
             raise ValueError(f"Unsupported model name: {model_name}")
      
