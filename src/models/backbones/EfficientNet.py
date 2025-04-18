@@ -4,13 +4,13 @@
 
 import timm
 
-def crete_efficientnet_v2_model(model_name='efficientnet_b0', num_classes=2, pretrained=True, in22k=False):
+def crete_efficientnet_v2_model(model_name='efficientnetv2_m', num_classes=2, pretrained=True, in22k=False):
    """
    Create an EfficientNet model for image classification.
 
    Args:
       model_name (str): Name of the EfficientNet model variant to use.
-      num_classes (int): Number of output classes (2 for binary melanoma classification).
+      num_classes (int): Number of output classes (0 for not initializing head).
       pretrained (bool): Whether to use pretrained weights.
 
    Returns:

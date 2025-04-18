@@ -16,8 +16,7 @@ python melanoma_train.py \
     --batch_size 8 \
     --epochs 10 \
     --device $DEVICE \
-    --input_size 518 \
-    --num_groups 4 \
+    --input_size 224 \
     --num_classes 2 \
     --num_workers 0 \
     --pretrained True \
@@ -30,7 +29,5 @@ python melanoma_train.py \
     --ifw  \
     --undersample_benign \
     --undersample_benign_ratio 0.2 \
-    --cielab \
     --weight_decay 0.0001 \
-    --lr 0.0001 \
     --output_dir "C:\lumen_melanoma_classification\melanoma-classification\melanoma_classifier_output" 
