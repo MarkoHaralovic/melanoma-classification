@@ -21,6 +21,7 @@ from src.engine.engine import train_one_epoch, evaluate
 from src.utils.utils import NativeScalerWithGradNormCount as NativeScaler
 from src.models.optim_factory import create_optimizer, LayerDecayValueAssigner
 from src.datasets.datasets import KaggleISICDataset, LocalISICDataset
+from src.datasets.sampler import BalancedBatchSampler, UnderSampler
 import src.utils.utils as utils
 import logging
 
@@ -145,12 +146,15 @@ def train(args):
         logging.info(f"Validation dataset groups: {val_dataset.groups}")
         logging.info(f"Validation dataset group distribution: {val_dataset.group}")
         
-    from torch.utils.data.sampler import RandomSampler
-
-    
+    sampler = None
+    if args.undersample_benign:
+        sampler = UnderSampler(train_dataset, labels = train_dataset.get_labels(), under_sample_rate=args.undersample_benign_ratio)
+    elif args.oversample_malignant:
+        sampler = ImbalancedDatasetSampler(train_dataset)
+        
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
-        sampler=ImbalancedDatasetSampler(train_dataset) if args.oversample_malignant else None,
+        sampler=sampler,
         batch_size=args.batch_size,
         shuffle=False,
         num_workers=args.num_workers,
@@ -451,7 +455,12 @@ if __name__ == '__main__':
     
     parser.add_argument('--model', default='convnext_tiny', type=str,
                         choices=['convnext_tiny', 'convnext_small', 'convnext_base', 'convnext_large',
-                        'efficientnetv2_b0', 'efficientnetv2_b1', 'efficientnetv2_b2', 'efficientnetv2_b3', 'efficientnetv2_m', 'efficientnetv2_l', 'efficientnetv2_s', 'efficientnetv2_xl' 
+                        'efficientnetv2_b0', 'efficientnetv2_b1', 'efficientnetv2_b2', 'efficientnetv2_b3', 
+                        'efficientnetv2_m', 'efficientnetv2_l', 'efficientnetv2_s', 'efficientnetv2_xl',
+                        'dinov2_vit_base', 'dinov2_vit_small', 'dinov2_vit_large', 'dinov2_vit_giant2',
+                        'convnextv2_atto', 'convnextv2_femto', 'convnextv2_pico', 'convnextv2_nano',
+                        'convnextv2_tiny', 'convnextv2_small', 'convnextv2_base', 'convnextv2_large',
+                        'convnextv2_xlarge'
                         ],
                         help='Model architecture to use')
     parser.add_argument('--num_classes', default=2, type=int,
@@ -522,6 +531,11 @@ if __name__ == '__main__':
     # Augmentation parameters
     parser.add_argument('--oversample_malignant', action='store_true', default=False,
                         help='Oversample malignant lesions')
+    parser.add_argument('--undersample_benign', action='store_true', default=False,
+                        help='Undersample benign lesions')
+    parser.add_argument('--undersample_benign_ratio', type=float, default=-1,
+                        help='Undersample benign lesions')
+    
     parser.add_argument('--smoothing', type=float, default=0.1,
                         help='Label smoothing value')
     parser.add_argument('--mixup', type=float, default=0.0,

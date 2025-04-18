@@ -11,12 +11,12 @@ fi
 python melanoma_train.py \
     --data_path "C:/lumen_melanoma_classification/melanoma-classification/isic2020_challenge" \
     --skin_color_csv "C:/lumen_melanoma_classification/melanoma-classification/isic2020_challenge/ISIC_2020_full.csv" \
-    --model efficientnetv2_m \
+    --model convnextv2_atto \
     --in_22k False \
     --batch_size 8 \
     --epochs 10 \
     --device $DEVICE \
-    --input_size 224 \
+    --input_size 518 \
     --num_groups 4 \
     --num_classes 2 \
     --num_workers 0 \
@@ -24,11 +24,12 @@ python melanoma_train.py \
     --log_dir "./melanoma_logs" \
     --warmup_epochs 1 \
     --use_amp False \
+    --lr 0.01 \
     --mixup 0.0 \
     --update_freq 1 \
     --ifw  \
-    --domain_discriminative_loss \
-    --segment_out_skin True \
+    --undersample_benign \
+    --undersample_benign_ratio 0.2 \
     --cielab \
     --weight_decay 0.0001 \
     --lr 0.0001 \

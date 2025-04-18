@@ -16,11 +16,11 @@ import submitit
 
 def parse_args():
     classification_parser = classification.get_args_parser()
-    parser = argparse.ArgumentParser("Submitit for ConvNeXt", parents=[classification_parser])
+    parser = argparse.ArgumentParser("Submitit for melanoma classification", parents=[classification_parser])
     parser.add_argument("--ngpus", default=8, type=int, help="Number of gpus to request on each node")
     parser.add_argument("--nodes", default=2, type=int, help="Number of nodes to request")
     parser.add_argument("--timeout", default=72, type=int, help="Duration of the job, in hours")
-    parser.add_argument("--job_name", default="convnext", type=str, help="Job name")
+    parser.add_argument("--job_name", default="melanoma_classification", type=str, help="Job name")
     parser.add_argument("--job_dir", default="", type=str, help="Job directory; leave empty for default")
     parser.add_argument("--partition", default="learnlab", type=str, help="Partition where to submit")
     parser.add_argument("--use_volta32", action='store_true', default=True, help="Big models? Use this")
@@ -31,7 +31,7 @@ def parse_args():
 def get_shared_folder() -> Path:
     user = os.getenv("USER")
     if Path("/checkpoint/").is_dir():
-        p = Path(f"/checkpoint/{user}/convnext")
+        p = Path(f"/checkpoint/{user}/melanoma_classification")
         p.mkdir(exist_ok=True)
         return p
     raise RuntimeError("No shared folder available")
@@ -101,8 +101,7 @@ def main():
         tasks_per_node=num_gpus_per_node,  # one task per GPU
         cpus_per_task=10,
         nodes=nodes,
-        timeout_min=timeout_min,  # max is 60 * 72
-        # Below are cluster dependent parameters
+        timeout_min=timeout_min,  
         slurm_partition=partition,
         slurm_signal_delay_s=120,
         **kwargs
