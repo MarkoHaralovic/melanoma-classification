@@ -5,7 +5,8 @@ from timm.data import Mixup
 from timm.utils import accuracy, ModelEma
 
 from ..models.losses.criterion import DomainIndependentLoss, DomainDiscriminativeLoss
-from ..utils import utils
+from ..evaluation.metrics import _eval, compute_preds_sum_out, compute_preds_conditional, compute_accuracy_sum_prob_wo_prior_shift, get_metrics
+from ..utils import logging_utils
 
 def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                     data_loader: Iterable, optimizer: torch.optim.Optimizer,
@@ -14,9 +15,9 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                     wandb_logger=None, start_steps=None, lr_schedule_values=None, wd_schedule_values=None,
                     num_training_steps_per_epoch=None, update_freq=None, use_amp=False):
     model.train(True)
-    metric_logger = utils.MetricLogger(delimiter="  ")
-    metric_logger.add_meter('lr', utils.SmoothedValue(window_size=1, fmt='{value:.6f}'))
-    metric_logger.add_meter('min_lr', utils.SmoothedValue(window_size=1, fmt='{value:.6f}'))
+    metric_logger = logging_utils.MetricLogger(delimiter="  ")
+    metric_logger.add_meter('lr', logging_utils.SmoothedValue(window_size=1, fmt='{value:.6f}'))
+    metric_logger.add_meter('min_lr', logging_utils.SmoothedValue(window_size=1, fmt='{value:.6f}'))
     header = 'Epoch: [{}]'.format(epoch)
     print_freq = 10
 
@@ -89,11 +90,11 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
 
         if mixup_fn is None:
             if isinstance(criterion, DomainIndependentLoss):
-                preds = utils.compute_preds_sum_out(output, criterion.num_classes, criterion.num_domains)
+                preds = compute_preds_sum_out(output, criterion.num_classes, criterion.num_domains)
                 class_acc = (preds == targets).float().sum() / targets.shape[0]
             elif isinstance(criterion, DomainDiscriminativeLoss):
                 probs = criterion.get_probs(output)
-                preds = utils.compute_accuracy_sum_prob_wo_prior_shift(probs, criterion.num_classes, criterion.num_domains)
+                preds = compute_accuracy_sum_prob_wo_prior_shift(probs, criterion.num_classes, criterion.num_domains)
                 class_acc = (preds == targets).float().sum() / targets.shape[0]
             else:
                 class_acc = (output.max(-1)[-1] == targets).float().mean()
@@ -150,7 +151,7 @@ def evaluate(data_loader, model, device, use_amp=False, criterion=None):
     if criterion is None:
         criterion = torch.nn.CrossEntropyLoss()
 
-    metric_logger = utils.MetricLogger(delimiter="  ")
+    metric_logger = logging_utils.MetricLogger(delimiter="  ")
     header = 'Test:'
     
     y_true = []
@@ -185,17 +186,17 @@ def evaluate(data_loader, model, device, use_amp=False, criterion=None):
                 loss = criterion(output, target)
 
         if isinstance(criterion, DomainIndependentLoss) and not criterion.conditional_accuracy:
-            preds = utils.compute_preds_sum_out(output,criterion.num_classes, criterion.num_domains)
+            preds = compute_preds_sum_out(output,criterion.num_classes, criterion.num_domains)
             acc1 = (preds == target).float().sum() / target.shape[0]
         elif isinstance(criterion, DomainIndependentLoss) and criterion.conditional_accuracy:
-            preds = utils.compute_preds_conditional(output,criterion.num_classes, criterion.num_domains, group)
+            preds = compute_preds_conditional(output,criterion.num_classes, criterion.num_domains, group)
             acc1 = (preds == target).float().sum() / target.shape[0]
         elif isinstance(criterion, DomainDiscriminativeLoss):
             probs = criterion.get_probs(output)
-            preds = utils.compute_accuracy_sum_prob_wo_prior_shift(probs, criterion.num_classes, criterion.num_domains)
+            preds = compute_accuracy_sum_prob_wo_prior_shift(probs, criterion.num_classes, criterion.num_domains)
             acc1 = (preds == target).float().sum() / target.shape[0]
         else:
-            preds = utils._eval(output)[0]
+            preds = _eval(output)[0]
             acc1 = accuracy(output, target, topk=(1,5))[0]
 
         y_true.extend(target.cpu().tolist())
@@ -211,7 +212,7 @@ def evaluate(data_loader, model, device, use_amp=False, criterion=None):
     print('* Global acc@1 {top1.global_avg:.3f} loss {losses.global_avg:.3f}'
           .format(top1=metric_logger.acc1, losses=metric_logger.loss))
 
-    malignant_recall, malignant_precision, malignant_f1, malignant_dpd = utils.get_metrics(y_true, y_pred, groups)
+    malignant_recall, malignant_precision, malignant_f1, malignant_dpd = get_metrics(y_true, y_pred, groups)
     
     metric_logger.meters['malignant_recall'].update(malignant_recall)
     metric_logger.meters['malignant_precision'].update(malignant_precision)

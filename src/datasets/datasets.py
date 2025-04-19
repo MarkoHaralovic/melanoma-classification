@@ -13,7 +13,7 @@ from sklearn.model_selection import train_test_split
 import cv2
 import numpy as np
 
-from ..utils.utils import ita_to_group
+from .data_processing import ita_to_group
 
 def build_dataset(is_train, args, transform=None):
     if not args.convert_to_ffcv and transform is None:

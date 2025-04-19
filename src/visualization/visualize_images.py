@@ -85,9 +85,8 @@ def main(args):
       plt.show()
       
 if __name__ == '__main__':
-   parser = argparse.ArgumentParser('Melanoma Classification Training')
+   parser = argparse.ArgumentParser('Melanoma imaes visualization')
 
-   
    parser.add_argument('--data_path', default='./isic2020_challenge', type=str,
                      help='Path to dataset with train/valid folders')
    parser.add_argument('--input_size', default=224, type=int)
@@ -98,6 +97,7 @@ if __name__ == '__main__':
                      help='Number of images to visualize')
    parser.add_argument('--batch_size', default=5, type=int,
                      help='Batch size for visualization')
+   
    # Augmentation parameters
    parser.add_argument('--cielab', action='store_true', default=True,
                      help='Load images to CIELab colorspace')
@@ -112,6 +112,5 @@ if __name__ == '__main__':
                      help='Pin CPU memory for data loading')
    args = parser.parse_args()
 
-   
    print(args)
    main(args)
