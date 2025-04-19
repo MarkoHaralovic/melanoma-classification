@@ -1,5 +1,7 @@
-import torch
 import logging
+import torch
+import torch.nn.functional as F
+import numpy as np
 from fairlearn.metrics import demographic_parity_difference
 
 def _eval(output, topk=(1,)):
@@ -28,7 +30,12 @@ def compute_preds_conditional(outputs, num_classes, num_domains, groups):
          predictions[_ids] = _pred
    return predictions
 
-def compute_accuracy_sum_prob_wo_prior_shift(probs, num_classes, num_domains):
+def compute_preds_sum_prob_w_prior_shift(outputs, num_classes, num_domains):
+   # Training distributions per domain
+   prior_shift_weight = np.array([
+      1088/1072, 1088/16, 17746/17515, 17746/231, 6454/6273, 6454/181, 850/834, 850/16 
+   ]) / 100
+   probs = F.softmax(outputs, dim=1).cpu().numpy() * prior_shift_weight
    domain_probs = []
    for i in range(num_domains):
       domain_probs.append(probs[:, i * num_classes:(i + 1) * num_classes])

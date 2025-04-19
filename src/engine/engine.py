@@ -5,7 +5,7 @@ from timm.data import Mixup
 from timm.utils import accuracy, ModelEma
 
 from ..models.losses.criterion import DomainIndependentLoss, DomainDiscriminativeLoss
-from ..evaluation.metrics import _eval, compute_preds_sum_out, compute_preds_conditional, compute_accuracy_sum_prob_wo_prior_shift, get_metrics
+from ..evaluation.metrics import _eval, compute_preds_sum_out, compute_preds_conditional, compute_preds_sum_prob_w_prior_shift, get_metrics
 from ..utils import logging_utils
 
 def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
@@ -91,8 +91,7 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                 preds = compute_preds_sum_out(output, criterion.num_classes, criterion.num_domains)
                 class_acc = (preds == targets).float().sum() / targets.shape[0]
             elif isinstance(criterion, DomainDiscriminativeLoss):
-                probs = criterion.get_probs(output)
-                preds = compute_accuracy_sum_prob_wo_prior_shift(probs, criterion.num_classes, criterion.num_domains)
+                preds = compute_preds_sum_prob_w_prior_shift(output, criterion.num_classes, criterion.num_domains)
                 class_acc = (preds == targets).float().sum() / targets.shape[0]
             else:
                 class_acc = (output.max(-1)[-1] == targets).float().mean()
@@ -190,8 +189,7 @@ def evaluate(data_loader, model, device, use_amp=False, criterion=None):
             preds = compute_preds_conditional(output,criterion.num_classes, criterion.num_domains, group)
             acc1 = (preds == target).float().sum() / target.shape[0]
         elif isinstance(criterion, DomainDiscriminativeLoss):
-            probs = criterion.get_probs(output)
-            preds = compute_accuracy_sum_prob_wo_prior_shift(probs, criterion.num_classes, criterion.num_domains)
+            preds = compute_preds_sum_prob_w_prior_shift(output, criterion.num_classes, criterion.num_domains)
             acc1 = (preds == target).float().sum() / target.shape[0]
         else:
             preds = _eval(output)[0]

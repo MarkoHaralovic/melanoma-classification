@@ -105,8 +105,6 @@ class DomainDiscriminativeLoss(nn.Module):
       
    def forward(self, logits, targets):
       return self.criterion(logits, targets, weight=self.weight)
-   def get_probs(self, logits):
-      return F.softmax(logits, dim=1).detach()
     
 class FocalLoss(nn.Module):
    def __init__(self, gamma=0, alpha=None, size_average=True):
@@ -187,12 +185,13 @@ def labels_to_class_weights(samples, ifw_by_skin_type = False, num_classes=2, al
       for combo in unique_combinations:
          target, skin_color = combo
          combo_count = combination_counts[combo]
-         combo_idx = target * num_skin_colors + skin_color
+         # combo_idx = target * num_skin_colors + skin_color
+         combo_idx = skin_color * num_classes + target
          
          weight_value = 1.0 / max(combo_count, 1)
          
          if target == 1:
-               weight_value *= (1.0 + beta)
+            weight_value *= (1.0 + beta)
                
          class_weights[combo_idx] = weight_value
       
