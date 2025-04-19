@@ -62,7 +62,29 @@ def save_model(args, epoch, model, model_without_ddp, optimizer, save_path):
     }
 
     save_on_master(to_save, save_path)
+    
+    if is_main_process():
+        _input = torch.randn(1, 3, args.input_size, args.input_size, device=args.device)
+        export_dir = os.path.join(args.output_dir, "exported_models")
+        onnx_path = os.path.join(export_dir, "model_onnx.onnx")
+        torchscript_path = os.path.join(export_dir, "model_torchscript.pt")
+        if not os.path.exists(export_dir):
+            os.makedirs(export_dir)
+        convert_to_torchscript(model, _input, torchscript_path)
+        export_model_to_onnx(model, _input, onnx_path)
+        
+def convert_to_torchscript(model, input_tensor, output_path):
+    model.eval()
+    scripted_model = torch.jit.trace(model, input_tensor)
+    scripted_model.save(output_path)
+    logging.info(f"Model exported to Torchscript format at {output_path}")
 
+def export_model_to_onnx(model, input_tensor, output_path):
+    torch.onnx.export(model, input_tensor, output_path, export_params=True, opset_version=11,
+                      do_constant_folding=True, input_names=['input'], output_names=['output'],
+                      dynamic_axes={'input': {0: 'batch_size'}, 'output': {0: 'batch_size'}})
+    logging.info(f"Model exported to ONNX format at {output_path}")
+    
 def auto_load_model(args, model, model_without_ddp, optimizer, loss_scaler, model_ema=None):
     output_dir = Path(args.output_dir)
     if len(args.checkpoint) == 0:

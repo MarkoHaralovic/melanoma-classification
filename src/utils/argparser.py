@@ -1,4 +1,8 @@
 import argparse
+import yaml
+import os
+import logging
+from copy import deepcopy
 
 def str2bool(v):
     """
@@ -172,7 +176,33 @@ def parse_args():
     parser.add_argument('--dist_url', default='env://',
                         help='url used to set up distributed training')
     
+    # add config file
+    parser.add_argument('--config', default=None, type=str,
+                        help='Path to the config file')
+    
     args = parser.parse_args()
     if args.weight_decay_end is None:
             args.weight_decay_end = args.weight_decay
+            
+    if args.config is not None and os.path.exists(args.config):
+        config = load_yaml_config(args.config)
+        args = update_args_with_config(args, config)
     return args
+
+def load_yaml_config(config_path):
+    with open(config_path, 'r') as f:
+        return yaml.safe_load(f)
+
+def update_args_with_config(args, config_dict):
+    parser, explicit_args = args._get_kwargs(), {}
+    
+    for k, v in parser:
+        if hasattr(args, f"__{k}"):
+            explicit_args[k] = True
+    
+    args_copy = deepcopy(args)
+    for k, v in config_dict.items():
+        if k not in explicit_args and hasattr(args_copy, k):
+            setattr(args_copy, k, v)
+    
+    return args_copy
