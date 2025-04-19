@@ -13,13 +13,13 @@ python melanoma_train.py \
    --skin_color_csv "C:/lumen_melanoma_classification/melanoma-classification/isic2020_challenge/ISIC_2020_full.csv" \
    --model dinov2_vit_small \
    --in_22k False \
-   --batch_size 128 \
+   --batch_size 8 \
    --epochs 10 \
    --device $DEVICE \
    --freeze_model True \
-   --input_size 518 \
+   --input_size 224 \
    --num_classes 2 \
-   --num_workers 16 \
+   --num_workers 4 \
    --pretrained True \
    --log_dir "./melanoma_logs" \
    --warmup_epochs 0 \

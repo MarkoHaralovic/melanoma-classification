@@ -508,8 +508,8 @@ def auto_load_model(args, model, model_without_ddp, optimizer, loss_scaler, mode
                 loss_scaler.load_state_dict(checkpoint['scaler'])
             logging.info("With optim & sched!")
 
-def _eval(output, target, topk=(1,)):
-    """Computes the accuracy over the k top predictions for the specified values of k"""
+def _eval(output, topk=(1,)):
+    """Computes the predictions over the k top predictions for the specified values of k"""
     maxk = min(max(topk), output.size()[1])
     _, pred = output.topk(maxk, 1, True, True)
     pred = pred.t()

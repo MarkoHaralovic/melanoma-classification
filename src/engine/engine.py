@@ -51,6 +51,8 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                     loss = criterion(output, targets)
         else: # full precision
             output = model(samples)
+            import pdb
+            pdb.set_trace()
             if isinstance(criterion, DomainIndependentLoss):
                 loss = criterion(output, targets, groups)
             else:
@@ -193,7 +195,7 @@ def evaluate(data_loader, model, device, use_amp=False, criterion=None):
             preds = utils.compute_accuracy_sum_prob_wo_prior_shift(probs, criterion.num_classes, criterion.num_domains)
             acc1 = (preds == target).float().sum() / target.shape[0]
         else:
-            preds = utils._eval(output, target)[0]
+            preds = utils._eval(output)[0]
             acc1 = accuracy(output, target, topk=(1,5))[0]
 
         y_true.extend(target.cpu().tolist())
