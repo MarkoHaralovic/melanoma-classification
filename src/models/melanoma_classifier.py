@@ -17,12 +17,12 @@ class MelanomaClassifier(nn.Module):
         super().__init__()
         
         if model_name.__contains__('convnext_'):
-            self.model, self.num_features = create_convnext_model(model_name=model_name, pretrained=pretrained, in22k=in_22k)
+            self.model, self.num_features = create_convnext_model(model_name=model_name, pretrained=pretrained, in_22k=in_22k)
             self.model.head = nn.Linear(self.num_features, num_classes)  
         elif model_name.__contains__('efficientnet'):
-            self.model, self.num_features  = crete_efficientnet_v2_model(model_name=model_name, num_classes=num_classes, pretrained=pretrained, in22k=in_22k)
+            self.model, self.num_features  = crete_efficientnet_v2_model(model_name=model_name, num_classes=num_classes, pretrained=pretrained, in_22k=in_22k)
         elif model_name.__contains__('convnextv2'):
-            self.model, self.num_features = create_convnext_v2_model(model_name=model_name, num_classes = num_classes, pretrained=pretrained, in22k=in_22k)
+            self.model, self.num_features = create_convnext_v2_model(model_name=model_name, num_classes = num_classes, pretrained=pretrained, in_22k=in_22k)
         elif model_name.__contains__('dinov2'):
             self.model , self.num_features = create_dinov2_model(model_name=model_name, pretrained=pretrained, use_registers = True, freeze=freeze_model, register_buffer=None)
             self.model.head = nn.Linear(self.num_features, num_classes, bias=True)  
