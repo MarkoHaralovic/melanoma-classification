@@ -15,216 +15,6 @@ import numpy as np
 
 from .data_processing import ita_to_group
 
-def build_dataset(is_train, args, transform=None):
-    if not args.convert_to_ffcv and transform is None:
-        transform = build_transform(is_train, args)
-        print("Transform = ")
-        if isinstance(transform, tuple):
-            for trans in transform:
-                print(" - - - - - - - - - - ")
-                for t in trans.transforms:
-                    print(t)
-        else:
-            for t in transform.transforms:
-                print(t)
-        print("---------------------------")
-
-    else:
-        import warnings
-        warnings.warn("As the transformations are built using factory method timm.data.create_transform,\
-                      such a factory method should be implemented for ffcv module as well.\
-                      Currently transformations cannot be dynamically allocated for ffcv module \
-                      and any ffcv dataset that is built will contain no augmented images, if not specified here otherwise.",
-                      UserWarning)
-    if args.data_set == 'CIFAR':
-        if not args.convert_to_ffcv :
-            dataset = datasets.CIFAR100(args.data_path, train=is_train, transform=transform, download=True)
-        else:
-            dataset = datasets.CIFAR100(args.data_path, train=is_train, download=True)
-        nb_classes = 100
-    elif args.data_set == 'IMNET':
-        root = os.path.join(args.data_path, 'train' if is_train else 'val')
-        if not args.convert_to_ffcv :
-            dataset = datasets.ImageFolder(root, transform=transform)
-        else:
-            dataset = datasets.ImageFolder(root)
-        nb_classes = 1000
-    elif args.data_set == 'IMAGENET1K':
-        root = os.path.join(args.data_path, 'train' if is_train else 'val')
-        if not args.convert_to_ffcv :
-            dataset = datasets.ImageFolder(root, transform=transform)
-        else:
-            dataset = datasets.ImageFolder(root)
-        nb_classes = 1000
-        assert args.nb_classes == nb_classes
-    elif args.data_set == 'IMAGENET100':
-        root = os.path.join(args.data_path, 'train' if is_train else 'val')
-        if not args.convert_to_ffcv :
-            dataset = datasets.ImageFolder(root, transform=transform)
-        else:
-            dataset = datasets.ImageFolder(root)
-        nb_classes = 100
-        assert args.nb_classes == nb_classes
-    elif args.data_set == 'TINY_IMAGENET':
-        root = os.path.join(args.data_path, 'train' if is_train else 'val')
-        if not args.convert_to_ffcv :
-            dataset = datasets.ImageFolder(root, transform=transform)
-        else:
-            dataset = datasets.ImageFolder(root)
-        nb_classes = 200
-        assert args.nb_classes == nb_classes
-    elif args.data_set == "image_folder":
-        root = args.data_path if is_train else args.eval_data_path
-        if not args.convert_to_ffcv:
-            dataset = datasets.ImageFolder(root, transform=transform)
-        else:
-            dataset = datasets.ImageFolder(root)
-        nb_classes = args.nb_classes
-        assert len(dataset.class_to_idx) == nb_classes
-    else:
-        raise NotImplementedError()
-    
-    print(f"Dataset type : {args.data_path}")
-    print("Reading from datapath", args.data_path)
-    print("Number of classes =  %d" % nb_classes)
-
-    return dataset, nb_classes
-
-def build_transform(is_train, args):
-    resize_im = args.input_size > 32
-    imagenet_default_mean_and_std = args.imagenet_default_mean_and_std
-    mean = IMAGENET_INCEPTION_MEAN if not imagenet_default_mean_and_std else IMAGENET_DEFAULT_MEAN
-    std = IMAGENET_INCEPTION_STD if not imagenet_default_mean_and_std else IMAGENET_DEFAULT_STD
-
-    if is_train:
-        transform = create_transform(
-            input_size=args.input_size,
-            is_training=True,
-            color_jitter=args.color_jitter,
-            auto_augment=args.aa,
-            interpolation=args.train_interpolation,
-            re_prob=args.reprob,
-            re_mode=args.remode,
-            re_count=args.recount,
-            mean=mean,
-            std=std,
-        )
-        if not resize_im:
-            transform.transforms[0] = transforms.RandomCrop(
-                args.input_size, padding=4)
-        return transform
-
-    t = []
-    if resize_im:
-        # warping (no cropping) when evaluated at 384 or larger
-        if args.input_size >= 384:  
-            t.append(
-            transforms.Resize((args.input_size, args.input_size), 
-                            interpolation=transforms.InterpolationMode.BICUBIC), 
-        )
-            print(f"Warping {args.input_size} size input images...")
-        else:
-            if args.crop_pct is None and args.input_size==224: 
-                args.crop_pct = 224 / 256
-            elif args.crop_pct is None:
-                args.crop_pct = 1.0
-            size = int(args.input_size / args.crop_pct)
-            t.append(
-                transforms.Resize((size,size), interpolation=transforms.InterpolationMode.BICUBIC),  
-            )
-            t.append(transforms.CenterCrop(args.input_size))
-
-    t.append(transforms.ToTensor())
-    t.append(transforms.Normalize(mean, std))
-    # print(t)
-    return transforms.Compose(t)
-
-
-class KaggleISICDataset(Dataset):
-    def __init__(self, csv_file, image_dir, skin_color_csv = None, transform=None, augment_transforms = None,split='train', test_size=0.2,seed=42):
-        """
-        Args:
-            csv_file (str): Path to the CSV file containing image names and targets.
-            image_dir (str): Directory containing the image files.
-            skin_color_csv (str): Path to the CSV file containing information about each image ita, fitzpatrick scale and group it belongs
-                - ita: The individual typology angle (ITA) is a measure of the skin's reaction to sun exposure. 
-                - fitzpatrick_scale: The Fitzpatrick scale is a numerical classification schema for human skin color. 
-                - group : Each patient is classified into one of the groups based on his skin color type.
-            transform (callable, optional): Optional transform to be applied on an image.
-            augment_transforms (dict): Dictionary containing augmentations to be applied on malignant cases.
-            split (str): 'train' or 'valid', determines which subset to use.
-            test_size (float): Proportion of the dataset to allocate for validation.
-            seed (int): Random seed for reproducibility.
-        """
-        
-        self.image_dir = image_dir
-        self.transform = transform
-        self.split = split
-        
-        if augment_transforms is None:
-            self.augment_transforms = None
-            self.oversample_ratio = 1
-        else:
-            self.augment_transforms = augment_transforms
-            self.oversample_ratio = len(self.augment_transforms.keys())
-            
-        if skin_color_csv is not None:
-            print(f"Skin color csv is defined. Using predefined train/valid splits.")
-            df = pd.read_csv(skin_color_csv, sep=';') 
-            train_df = df[df['split'] == "train"]
-            valid_df = df[df['split'] == "train"]
-        else:
-            df = pd.read_csv(csv_file)     
-            train_df, valid_df = train_test_split(
-            df, test_size=test_size, stratify=df['target'], random_state=seed
-        )
-        
-        
-        self.data = train_df if split == 'train' else valid_df
-
-        if skin_color_csv is not None:
-            self.samples = [(row['image_name'], row['target'], row['group']) for _, row in self.data.iterrows()]
-            self.groups =  len(self.data['group'].unique())
-            self.group = self.data['group'].value_counts()
-        else:
-            self.samples = [(row['image_name'], row['target'], None ) for _, row in self.data.iterrows()]
-            
-        self.classes = 2  
-        if self.augment_transforms is None:
-            self.class_distribution = (len(self.data[self.data['target'] == 0]), len(self.data[self.data['target'] == 1]))
-        else:
-            self.class_distribution = (len(self.data[self.data['target'] == 0]), len(self.data[self.data['target'] == 1]) * self.oversample_ratio)
-
-    def __len__(self):
-        if self.augment_transforms is None or self.split != 'train':
-            return len(self.data)
-        return len(self.data[self.data['target'] == 0]) + self.oversample_ratio * len(self.data[self.data['target'] == 1])
-
-    def __getitem__(self, idx):
-        if self.augment_transforms is not None and self.split == 'train':
-            actual_idx = min(idx // self.oversample_ratio, len(self.data) - 1) if idx % self.oversample_ratio != 0 else min(idx, len(self.data) - 1)
-            row = self.data.iloc[actual_idx]
-            augment_type = list(self.augment_transforms.keys())[idx % self.oversample_ratio]
-        else:
-            row = self.data.iloc[idx]
-            augment_type = "original"
-
-        image_name = row['image_name']
-        if not image_name.lower().endswith('.jpg'):
-            image_name = image_name + '.jpg'
-            
-        image_path = os.path.join(self.image_dir, image_name)
-        target = row['target']  
-        group = row['group'] if 'group' in row.index else -1
-        image = Image.open(image_path).convert('RGB')
-
-        if target == 1 and self.split == 'train' and self.augment_transforms is not None:
-            image = self.augment_transforms[augment_type](image)
-        if self.transform:
-            image = self.transform(image)
-
-        return image, target, group
-    
 class LocalISICDataset(Dataset):
     def __init__(self, root, transform = None, skin_color_csv = None, augment_transforms = None, split = 'train', cielab=False, skin_former = False, segment_out_skin = False):
         """
@@ -364,11 +154,6 @@ class LocalISICDataset(Dataset):
                 assert len(mask.shape) == 2 or mask.shape[-1] == 1, "Mask has to be grayscale"
                 assert mask.min() >= 0 and mask.max() <= 1, "Mask values have to be in [0,1]"
 
-                # # Dummy mask, remove me!
-                # if len(mask.shape) == 3:
-                #     mask = np.zeros_like(np_image[:,:,0])
-                #     mask[:224,:224] = 1
-
                 # Max ita in our darkest groups (28)
                 target_ita = random.random() * 38 - 10
                 delta_ita = float(ita) - target_ita
@@ -430,3 +215,207 @@ class LocalISICDataset(Dataset):
                     _, target = img_data
                     labels.append(target)
             return labels
+        
+
+class KaggleISICDataset(Dataset):
+    def __init__(self, csv_file, image_dir, skin_color_csv = None, transform=None, augment_transforms = None,split='train', test_size=0.2,seed=42):
+        """
+        Args:
+            csv_file (str): Path to the CSV file containing image names and targets.
+            image_dir (str): Directory containing the image files.
+            skin_color_csv (str): Path to the CSV file containing information about each image ita, fitzpatrick scale and group it belongs
+                - ita: The individual typology angle (ITA) is a measure of the skin's reaction to sun exposure. 
+                - fitzpatrick_scale: The Fitzpatrick scale is a numerical classification schema for human skin color. 
+                - group : Each patient is classified into one of the groups based on his skin color type.
+            transform (callable, optional): Optional transform to be applied on an image.
+            augment_transforms (dict): Dictionary containing augmentations to be applied on malignant cases.
+            split (str): 'train' or 'valid', determines which subset to use.
+            test_size (float): Proportion of the dataset to allocate for validation.
+            seed (int): Random seed for reproducibility.
+        """
+        
+        self.image_dir = image_dir
+        self.transform = transform
+        self.split = split
+        
+        if augment_transforms is None:
+            self.augment_transforms = None
+            self.oversample_ratio = 1
+        else:
+            self.augment_transforms = augment_transforms
+            self.oversample_ratio = len(self.augment_transforms.keys())
+            
+        if skin_color_csv is not None:
+            print(f"Skin color csv is defined. Using predefined train/valid splits.")
+            df = pd.read_csv(skin_color_csv, sep=';') 
+            train_df = df[df['split'] == "train"]
+            valid_df = df[df['split'] == "train"]
+        else:
+            df = pd.read_csv(csv_file)     
+            train_df, valid_df = train_test_split(
+            df, test_size=test_size, stratify=df['target'], random_state=seed
+        )
+        
+        
+        self.data = train_df if split == 'train' else valid_df
+
+        if skin_color_csv is not None:
+            self.samples = [(row['image_name'], row['target'], row['group']) for _, row in self.data.iterrows()]
+            self.groups =  len(self.data['group'].unique())
+            self.group = self.data['group'].value_counts()
+        else:
+            self.samples = [(row['image_name'], row['target'], None ) for _, row in self.data.iterrows()]
+            
+        self.classes = 2  
+        if self.augment_transforms is None:
+            self.class_distribution = (len(self.data[self.data['target'] == 0]), len(self.data[self.data['target'] == 1]))
+        else:
+            self.class_distribution = (len(self.data[self.data['target'] == 0]), len(self.data[self.data['target'] == 1]) * self.oversample_ratio)
+
+    def __len__(self):
+        if self.augment_transforms is None or self.split != 'train':
+            return len(self.data)
+        return len(self.data[self.data['target'] == 0]) + self.oversample_ratio * len(self.data[self.data['target'] == 1])
+
+    def __getitem__(self, idx):
+        if self.augment_transforms is not None and self.split == 'train':
+            actual_idx = min(idx // self.oversample_ratio, len(self.data) - 1) if idx % self.oversample_ratio != 0 else min(idx, len(self.data) - 1)
+            row = self.data.iloc[actual_idx]
+            augment_type = list(self.augment_transforms.keys())[idx % self.oversample_ratio]
+        else:
+            row = self.data.iloc[idx]
+            augment_type = "original"
+
+        image_name = row['image_name']
+        if not image_name.lower().endswith('.jpg'):
+            image_name = image_name + '.jpg'
+            
+        image_path = os.path.join(self.image_dir, image_name)
+        target = row['target']  
+        group = row['group'] if 'group' in row.index else -1
+        image = Image.open(image_path).convert('RGB')
+
+        if target == 1 and self.split == 'train' and self.augment_transforms is not None:
+            image = self.augment_transforms[augment_type](image)
+        if self.transform:
+            image = self.transform(image)
+
+        return image, target, group
+    
+def build_dataset(is_train, args, transform=None, nb_classes=2):
+    if not args.convert_to_ffcv and transform is None:
+        transform = build_transform(is_train, args)
+        print("Transform = ")
+        if isinstance(transform, tuple):
+            for trans in transform:
+                print(" - - - - - - - - - - ")
+                for t in trans.transforms:
+                    print(t)
+        else:
+            for t in transform.transforms:
+                print(t)
+        print("---------------------------")
+
+    else:
+        import warnings
+        warnings.warn("As the transformations are built using factory method timm.data.create_transform,\
+                      such a factory method should be implemented for ffcv module as well.\
+                      Currently transformations cannot be dynamically allocated for ffcv module \
+                      and any ffcv dataset that is built will contain no augmented images, if not specified here otherwise.",
+                      UserWarning)
+    if args.data_set == 'CIFAR':
+        if not args.convert_to_ffcv :
+            dataset = datasets.CIFAR100(args.data_path, train=is_train, transform=transform, download=True)
+        else:
+            dataset = datasets.CIFAR100(args.data_path, train=is_train, download=True)
+    elif args.data_set == 'IMNET':
+        root = os.path.join(args.data_path, 'train' if is_train else 'val')
+        if not args.convert_to_ffcv :
+            dataset = datasets.ImageFolder(root, transform=transform)
+        else:
+            dataset = datasets.ImageFolder(root)
+    elif args.data_set == 'IMAGENET1K':
+        root = os.path.join(args.data_path, 'train' if is_train else 'val')
+        if not args.convert_to_ffcv :
+            dataset = datasets.ImageFolder(root, transform=transform)
+        else:
+            dataset = datasets.ImageFolder(root)
+        assert args.nb_classes == nb_classes
+    elif args.data_set == 'IMAGENET100':
+        root = os.path.join(args.data_path, 'train' if is_train else 'val')
+        if not args.convert_to_ffcv :
+            dataset = datasets.ImageFolder(root, transform=transform)
+        else:
+            dataset = datasets.ImageFolder(root)
+        assert args.nb_classes == nb_classes
+    elif args.data_set == 'TINY_IMAGENET':
+        root = os.path.join(args.data_path, 'train' if is_train else 'val')
+        if not args.convert_to_ffcv :
+            dataset = datasets.ImageFolder(root, transform=transform)
+        else:
+            dataset = datasets.ImageFolder(root)
+        assert args.nb_classes == nb_classes
+    elif args.data_set == "image_folder":
+        root = args.data_path if is_train else args.eval_data_path
+        if not args.convert_to_ffcv:
+            dataset = datasets.ImageFolder(root, transform=transform)
+        else:
+            dataset = datasets.ImageFolder(root)
+        nb_classes = args.nb_classes
+        assert len(dataset.class_to_idx) == nb_classes
+    else:
+        raise NotImplementedError()
+    
+    print(f"Dataset type : {args.data_path}")
+    print("Reading from datapath", args.data_path)
+    print("Number of classes =  %d" % nb_classes)
+
+    return dataset, nb_classes
+
+def build_transform(is_train, args):
+    resize_im = args.input_size > 32
+    imagenet_default_mean_and_std = args.imagenet_default_mean_and_std
+    mean = IMAGENET_INCEPTION_MEAN if not imagenet_default_mean_and_std else IMAGENET_DEFAULT_MEAN
+    std = IMAGENET_INCEPTION_STD if not imagenet_default_mean_and_std else IMAGENET_DEFAULT_STD
+
+    if is_train:
+        transform = create_transform(
+            input_size=args.input_size,
+            is_training=True,
+            color_jitter=args.color_jitter,
+            auto_augment=args.aa,
+            interpolation=args.train_interpolation,
+            re_prob=args.reprob,
+            re_mode=args.remode,
+            re_count=args.recount,
+            mean=mean,
+            std=std,
+        )
+        if not resize_im:
+            transform.transforms[0] = transforms.RandomCrop(
+                args.input_size, padding=4)
+        return transform
+
+    t = []
+    if resize_im:
+        # warping (no cropping) when evaluated at 384 or larger
+        if args.input_size >= 384:  
+            t.append(
+            transforms.Resize((args.input_size, args.input_size), 
+                            interpolation=transforms.InterpolationMode.BICUBIC), 
+        )
+            print(f"Warping {args.input_size} size input images...")
+        else:
+            if args.crop_pct is None and args.input_size==224: 
+                args.crop_pct = 224 / 256
+            elif args.crop_pct is None:
+                args.crop_pct = 1.0
+            size = int(args.input_size / args.crop_pct)
+            t.append(
+                transforms.Resize((size,size), interpolation=transforms.InterpolationMode.BICUBIC),  
+            )
+            t.append(transforms.CenterCrop(args.input_size))
+
+    t.append(transforms.ToTensor())
+    t.append(transforms.Normalize(mean, std))
+    return transforms.Compose(t)

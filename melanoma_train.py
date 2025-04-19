@@ -1,10 +1,7 @@
-import argparse
 from datetime import datetime, timedelta
-import numpy as np
 import time
 import torch
 import torch.nn as nn
-import torch.backends.cudnn as cudnn
 import json
 import os
 
@@ -25,7 +22,7 @@ from src.datasets.sampler import BalancedBatchSampler, UnderSampler
 from src.utils.argparser import parse_args
 from src.utils.distributed import fix_seed
 from src.utils import logging_utils
-from src.engine.scheduler import NativeScalerWithGradNormCount, get_grad_norm_, cosine_scheduler
+from src.engine.scheduler import cosine_scheduler
 import logging
 
 logging.basicConfig(

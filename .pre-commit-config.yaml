@@ -1,20 +1,20 @@
+exclude: ^(logs/|checkpoints/|weights/)
+
 repos:
--   repo: https://github.com/pre-commit/pre-commit-hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
     hooks:
-    -   id: trailing-whitespace
-    -   id: end-of-file-fixer
-    -   id: check-yaml
-    -   id: check-added-large-files
-    -   id: detect-private-key
-
--   repo: https://github.com/pycqa/isort
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+      - id: detect-private-key
+  - repo: https://github.com/pycqa/isort
     rev: 5.12.0
     hooks:
-    -   id: isort
-
--   repo: https://github.com/psf/black
+      - id: isort
+  - repo: https://github.com/psf/black
     rev: 24.1.1
     hooks:
-    -   id: black
+      - id: black
         args: [--line-length=100]

@@ -9,7 +9,6 @@ from tqdm import tqdm
 
 from src.datasets.datasets import LocalISICDataset
 from src.models.melanoma_classifier import MelanomaClassifier
-from src.utils import utils
 
 logging.basicConfig(
     level=logging.INFO,
@@ -17,7 +16,6 @@ logging.basicConfig(
     handlers=[logging.StreamHandler()],
 )
 logger = logging.getLogger()
-
 
 @torch.no_grad()
 def eval(args):

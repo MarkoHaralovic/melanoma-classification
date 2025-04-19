@@ -8,7 +8,6 @@ class BalancedBatchSampler(Sampler):
       self.dataset = dict()
       self.balanced_max = 0
       
-      # Save all the indices for all the classes
       for idx in range(0, len(dataset)):
          label = self._get_label(dataset, idx)
          if label not in self.dataset:
