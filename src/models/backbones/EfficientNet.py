@@ -4,7 +4,7 @@
 
 import timm
 
-def crete_efficientnet_v2_model(model_name='efficientnetv2_m', num_classes=2, pretrained=True, in22k=False):
+def crete_efficientnet_v2_model(model_name='efficientnetv2_m', num_classes=2, pretrained=True, in_22k=False):
    """
    Create an EfficientNet model for image classification.
 
@@ -20,7 +20,7 @@ def crete_efficientnet_v2_model(model_name='efficientnetv2_m', num_classes=2, pr
    if not model_name.startswith('tf_'):
       model_name = 'tf_' + model_name
       
-   model_name += '.in21k' if in22k else '.in21k_ft_in1k'
+   model_name += '.in21k' if in_22k else '.in21k_ft_in1k'
 
    print(f"Creating EfficientNet model: {model_name}")
    model = timm.create_model(model_name, pretrained=pretrained, num_classes=num_classes)

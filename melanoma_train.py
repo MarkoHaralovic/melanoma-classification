@@ -152,7 +152,7 @@ def train(args):
         train_dataset,
         sampler=train_sampler,
         batch_size=args.batch_size,
-        shuffle=False,
+        shuffle=True,
         num_workers=args.num_workers,
         pin_memory=args.pin_mem,
         drop_last=True
@@ -215,7 +215,7 @@ def train(args):
 
     # print("Model = %s" % str(model_without_ddp))
     logging.info(f"number of params: {n_parameters}")
-    
+      
     model_ema = None
     if args.model_ema:
         model_ema = ModelEma(
@@ -386,6 +386,7 @@ def train(args):
                     optimizer = optimizer,
                     save_path = save_path
                 )
+                
                 logging.info(f"Saved checkpoint to: {save_path}")
         
         model.eval()

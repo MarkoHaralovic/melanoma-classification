@@ -1,6 +1,6 @@
 import timm
 
-def create_convnext_v2_model(model_name='convnextv2_atto', num_classes=2, pretrained=True, in22k=False):
+def create_convnext_v2_model(model_name='convnextv2_atto', num_classes=2, pretrained=True, in_22k=False):
    """
    Create a ConvNeXtV2 model for image classification using timm.
 
@@ -14,7 +14,7 @@ def create_convnext_v2_model(model_name='convnextv2_atto', num_classes=2, pretra
       model (nn.Module): The created model.
       num_features (int): Number of features before the classifier.
    """
-   if in22k:
+   if in_22k:
       model_name += '.in22k'  
    else:
       model_name += '.fcmae_ft_in1k'  

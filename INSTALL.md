@@ -41,5 +41,16 @@ Download the [isic2020_challenge](link) classification dataset and structure the
       img3.jpeg
     class2/
       img4.jpeg
+  masks/
+    train/
+      class1/
+        mask1.png
+      class2/
+        mask2.png
+    val/
+      class1/
+        mask3.png
+      class2/
+        mask4.png
 ```
 

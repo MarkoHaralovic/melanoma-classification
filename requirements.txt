@@ -9,3 +9,4 @@ kneed
 torchsampler
 opencv-python
 seaborn
+onnx
