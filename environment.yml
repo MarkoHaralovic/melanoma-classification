@@ -1,0 +1,26 @@
+name: melanoma2
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - numpy<2.0 
+  - cudatoolkit=11.8  # Change this according to your CUDA version or REMOVE for CPU-only
+  - pip=22.3.1
+  - pillow=9.4.0
+  - tqdm
+  - pytorch::pytorch=2.2.0
+  - pytorch::torchvision=0.17.0
+  - pytorch::torchaudio=2.2.0
+  - pip:
+    - timm==0.9.16
+    - tensorboardX
+    - six
+    - submitit
+    - numba
+    - fairlearn
+    - kneed
+    - torchsampler
+    - opencv-python
+    - seaborn

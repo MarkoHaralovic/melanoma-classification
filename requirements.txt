@@ -8,3 +8,4 @@ fairlearn
 kneed
 torchsampler
 opencv-python
+seaborn
