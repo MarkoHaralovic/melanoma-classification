@@ -9,7 +9,7 @@ else
 fi
 
 python melanoma_train.py \
-    --data_path "C:/lumen_melanoma_classification/melanoma-classification/isic2020_challenge" \
+    --data_path "C:/lumen_melanoma_classification/melanoma-classification/isic2020_challenge_mini" \
     --skin_color_csv "C:/lumen_melanoma_classification/melanoma-classification/isic2020_challenge/ISIC_2020_full.csv" \
     --model convnextv2_atto \
     --in_22k False \
@@ -27,7 +27,5 @@ python melanoma_train.py \
     --mixup 0.0 \
     --update_freq 1 \
     --ifw  \
-    --undersample_benign \
-    --undersample_benign_ratio 0.2 \
     --weight_decay 0.0001 \
     --output_dir "C:\lumen_melanoma_classification\melanoma-classification\melanoma_classifier_output" 

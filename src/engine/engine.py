@@ -52,8 +52,8 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                     loss = criterion(output, targets)
         else: # full precision
             output = model(samples)
-            import pdb
-            pdb.set_trace()
+            # import pdb
+            # pdb.set_trace()
             if isinstance(criterion, DomainIndependentLoss):
                 loss = criterion(output, targets, groups)
             else:

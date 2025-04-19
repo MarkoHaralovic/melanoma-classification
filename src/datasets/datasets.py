@@ -57,21 +57,25 @@ class LocalISICDataset(Dataset):
         benign_mask_dir = os.path.join(self.root, 'masks', split, 'benign')
         malignant_mask_dir = os.path.join(self.root, 'masks', split, 'malignant')
         
-        benign_masks = [os.path.join(benign_mask_dir, mask) for mask in os.listdir(benign_mask_dir) 
-                        if mask.lower().endswith(('.jpg'))]
-        malignant_masks = [os.path.join(malignant_mask_dir, mask) for mask in os.listdir(malignant_mask_dir) 
-                        if mask.lower().endswith(('.jpg'))]
-        
+        if os.path.exists(benign_mask_dir) and os.path.exists(malignant_mask_dir):
+            benign_masks = [os.path.join(benign_mask_dir, mask) for mask in os.listdir(benign_mask_dir) 
+                            if mask.lower().endswith(('.jpg'))]
+            malignant_masks = [os.path.join(malignant_mask_dir, mask) for mask in os.listdir(malignant_mask_dir) 
+                            if mask.lower().endswith(('.jpg'))]
+            benign_masks = sorted(benign_masks)
+            malignant_masks = sorted(malignant_masks)
+        else:
+            benign_masks = [None] * len(os.listdir(benign_dir))
+            malignant_masks = [None] * len(os.listdir(malignant_dir))
+            
         benign_images = [(os.path.join(benign_dir, img), 0) for img in os.listdir(benign_dir) 
                          if img.lower().endswith(('.jpg'))]
         malignant_images = [(os.path.join(malignant_dir, img), 1) for img in os.listdir(malignant_dir) 
-                           if img.lower().endswith(('.jpg'))]
+                        if img.lower().endswith(('.jpg'))]
         
         benign_images = sorted(benign_images, key=lambda x: x[0])
         malignant_images = sorted(malignant_images, key=lambda x: x[0])
-        benign_masks = sorted(benign_masks)
-        malignant_masks = sorted(malignant_masks)
-        
+
         self.samples = []
         self.samples.extend(zip(benign_images, benign_masks))
         self.samples.extend(zip(malignant_images, malignant_masks))

@@ -23,6 +23,8 @@ from src.utils.argparser import parse_args
 from src.utils.distributed import fix_seed
 from src.utils import logging_utils
 from src.engine.scheduler import cosine_scheduler
+from src.utils.distributed import init_distributed_mode, is_main_process, setup_for_distributed, get_world_size, get_rank
+from src.utils import utils
 import logging
 
 logging.basicConfig(
@@ -35,6 +37,14 @@ logging.basicConfig(
 logger = logging.getLogger()
 
 def train(args):
+    init_distributed_mode(args)
+    device = torch.device(args.device if torch.cuda.is_available() else "cpu")
+    logging.info(f"Using device: {device}")
+    
+    num_tasks = get_world_size()
+    global_rank = get_rank()
+    fix_seed(args.seed + global_rank)
+    
     if not args.kaggle:
         train_dir = os.path.join(args.data_path, 'train')
         valid_dir = os.path.join(args.data_path, 'valid')
@@ -46,11 +56,6 @@ def train(args):
         
         if not os.path.exists(valid_dir):
             raise FileNotFoundError(f"Valid directory not found: {valid_dir}")
-        
-    device = torch.device(args.device if torch.cuda.is_available() else "cpu")
-    logging.info(f"Using device: {device}")
-    
-    fix_seed(args.seed)
     
     if not args.cielab:
         transform = transforms.Compose([
@@ -129,15 +134,23 @@ def train(args):
         logging.info(f"Validation dataset groups: {val_dataset.groups}")
         logging.info(f"Validation dataset group distribution: {val_dataset.group}")
         
-    sampler = None
-    if args.undersample_benign:
-        sampler = UnderSampler(train_dataset, labels = train_dataset.get_labels(), under_sample_rate=args.undersample_benign_ratio)
+    train_sampler = None
+    val_sampler = None
+    if args.distributed:
+        train_sampler = torch.utils.data.DistributedSampler(
+            train_dataset, num_replicas=num_tasks, rank=global_rank, shuffle=True, seed=args.seed
+        )
+        val_sampler = torch.utils.data.DistributedSampler(
+            val_dataset, num_replicas=num_tasks, rank=global_rank, shuffle=False
+        )
+    elif args.undersample_benign:
+        train_sampler = UnderSampler(train_dataset, labels = train_dataset.get_labels(), under_sample_rate=args.undersample_benign_ratio)
     elif args.oversample_malignant:
-        sampler = ImbalancedDatasetSampler(train_dataset)
+        train_sampler = ImbalancedDatasetSampler(train_dataset)
         
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
-        sampler=sampler,
+        sampler=train_sampler,
         batch_size=args.batch_size,
         shuffle=False,
         num_workers=args.num_workers,
@@ -147,7 +160,7 @@ def train(args):
     
     val_loader = torch.utils.data.DataLoader(
         val_dataset,
-        sampler = None,
+        sampler = val_sampler,
         batch_size=args.batch_size,
         shuffle=False,
         num_workers=args.num_workers,
@@ -156,7 +169,7 @@ def train(args):
     )
     
     log_writer = None
-    if args.output_dir:
+    if args.output_dir and is_main_process():
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         model_name = args.model
         run_name = f"{timestamp}_{model_name}_bs{args.batch_size}"
@@ -183,7 +196,7 @@ def train(args):
             json.dump(vars(args), f, indent=4)
         args.log_dir = os.path.join(args.output_dir, "logs")
         
-        if args.log_dir:
+        if args.log_dir and is_main_process():
             os.makedirs(args.log_dir, exist_ok=True)
             log_writer = logging_utils.TensorboardLogger(log_dir=args.log_dir)
     
@@ -196,8 +209,8 @@ def train(args):
         in_22k = args.in_22k,
         freeze_model=args.freeze_model
     )
-    model = model.to(device)
     model_without_ddp = model
+    model = model.to(device)
     n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
 
     # print("Model = %s" % str(model_without_ddp))
@@ -236,7 +249,11 @@ def train(args):
 
     if assigner is not None:
         logging.info("Assigned values = %s" % str(assigner.values))
-        
+      
+    if args.distributed:
+        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu], find_unused_parameters=False)
+        model_without_ddp = model.module
+          
     optimizer = create_optimizer(
         args, model_without_ddp, skip_list=None,
         get_num_layer=assigner.get_layer_id if assigner is not None else None, 
@@ -254,6 +271,7 @@ def train(args):
     wd_schedule_values = cosine_scheduler(
         args.weight_decay, args.weight_decay_end, args.epochs, num_training_steps_per_epoch)
     logging.info(f"Max WD = {max(wd_schedule_values):.7f}, Min WD = {min(wd_schedule_values):.7f}")
+    
     
     if args.ifw:
         if args.num_groups > 1:
@@ -302,16 +320,20 @@ def train(args):
     
     logging.info(f"Criterion: {criterion}")
     
-    if args.resume:
-        if os.path.isfile(args.resume):
-            logging.info(f"Loading checkpoint from: {args.resume}")
-            checkpoint = torch.load(args.resume, map_location='cpu', weights_only=False)
+    utils.auto_load_model(
+        args=args, model=model, model_without_ddp=model_without_ddp,
+        optimizer=optimizer, loss_scaler=loss_scaler, model_ema=model_ema)
+    
+    if args.checkpoint:
+        if os.path.isfile(args.checkpoint):
+            logging.info(f"Loading checkpoint from: {args.checkpoint}")
+            checkpoint = torch.load(args.checkpoint, map_location='cpu', weights_only=False)
             model.load_state_dict(checkpoint['model_state_dict'])
             optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
             args.start_epoch = checkpoint.get('epoch', 0) + 1
-            logging.info(f"Loaded checkpoint '{args.resume}' (epoch {args.start_epoch-1})")
+            logging.info(f"Loaded checkpoint '{args.checkpoint}' (epoch {args.start_epoch-1})")
         else:
-            logging.info(f"No checkpoint found at: {args.resume}")
+            logging.info(f"No checkpoint found at: {args.checkpoint}")
             
     if args.test:
         model.eval()
@@ -335,6 +357,8 @@ def train(args):
     start_time = time.time()
     
     for epoch in range(args.start_epoch, args.epochs):
+        if args.distributed:
+            train_loader.sampler.set_epoch(epoch)
         logging.info(f"\nEpoch {epoch+1}/{args.epochs}")
         logging.info('-' * 30)
         
@@ -354,12 +378,14 @@ def train(args):
         if args.output_dir and args.save_ckpt:
             if (epoch + 1) % args.save_ckpt_freq == 0 or epoch + 1 == args.epochs:
                 save_path = os.path.join(args.output_dir, f'checkpoint_epoch_{epoch}.pth')
-                torch.save({
-                    'epoch': epoch,
-                    'model_state_dict': model.state_dict(),
-                    'optimizer_state_dict': optimizer.state_dict(),
-                    'args': args,
-                }, save_path)
+                utils.save_model(
+                    args =args,
+                    epoch = epoch,
+                    model = model,
+                    model_without_ddp = model_without_ddp,
+                    optimizer = optimizer,
+                    save_path = save_path
+                )
                 logging.info(f"Saved checkpoint to: {save_path}")
         
         model.eval()
@@ -406,7 +432,7 @@ def train(args):
             'n_parameters': n_parameters
         }
         
-        if args.output_dir:
+        if args.output_dir and is_main_process():
             with open(os.path.join(args.output_dir, "log.txt"), mode="a", encoding="utf-8") as f:
                 f.write(json.dumps(log_stats) + "\n")
     

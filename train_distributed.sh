@@ -1,14 +1,18 @@
 #!/bin/bash
 
 if [ -x "$(command -v nvidia-smi)" ]; then
-   DEVICE="cuda:0"
+   DEVICE="cuda"
    echo "Running on GPU"
 else
    DEVICE="cpu"
    echo "Running on CPU"
 fi
 
-python -m torch.distributed.launch --nproc_per_node=4 melanoma_train \
+python -m torch.distributed.launch \
+   --nproc_per_node=4 \
+   --master_port=29500 \
+   --use_env \
+   melanoma_train.py \
    --data_path "C:/lumen_melanoma_classification/melanoma-classification/isic2020_challenge" \
    --skin_color_csv "C:/lumen_melanoma_classification/melanoma-classification/isic2020_challenge/ISIC_2020_full.csv" \
    --model dinov2_vit_small \
@@ -30,4 +34,5 @@ python -m torch.distributed.launch --nproc_per_node=4 melanoma_train \
    --ifw  \
    --recall_ce \
    --weight_decay 0.0001 \
-   --output_dir "C:\lumen_melanoma_classification\melanoma-classification\melanoma_classifier_output" 
+   --output_dir "./melanoma_classifier_output" \
+   --distributed 

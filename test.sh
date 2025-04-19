@@ -21,6 +21,6 @@ python melanoma_train.py \
    --pretrained True \
    --log_dir "./melanoma_logs" \
    --ifw  \
-   --resume 'C:\lumen_melanoma_classification\melanoma-classification\melanoma_classifier_output\20250418_030204_convnextv2_atto_bs8_ifw\checkpoint_epoch_3.pth' \
+   --checkpoint 'C:\lumen_melanoma_classification\melanoma-classification\melanoma_classifier_output\20250418_030204_convnextv2_atto_bs8_ifw\checkpoint_epoch_3.pth' \
    --output_dir "C:\lumen_melanoma_classification\melanoma-classification\melanoma_classifier_output" \
    --test 

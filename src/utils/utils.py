@@ -53,33 +53,19 @@ def load_state_dict(model, state_dict, prefix='', ignore_missing="relative_posit
     if len(error_msgs) > 0:
         logging.error('\n'.join(error_msgs))
 
-def save_model(args, epoch, model, model_without_ddp, optimizer, loss_scaler, model_ema=None):
-    output_dir = Path(args.output_dir)
-    epoch_name = str(epoch)
-    checkpoint_paths = [output_dir / ('checkpoint-%s.pth' % epoch_name)]
-    for checkpoint_path in checkpoint_paths:
-        to_save = {
-            'model': model_without_ddp.state_dict(),
-            'optimizer': optimizer.state_dict(),
-            'epoch': epoch,
-            'scaler': loss_scaler.state_dict(),
-            'args': args,
-        }
+def save_model(args, epoch, model, model_without_ddp, optimizer, save_path):
+    to_save = {
+        'epoch' : epoch,
+        'model_state_dict': model_without_ddp.state_dict(),
+        'optimizer_state_dict': optimizer.state_dict(),
+        'args': args,
+    }
 
-        if model_ema is not None:
-            to_save['model_ema'] = get_state_dict(model_ema)
-
-        save_on_master(to_save, checkpoint_path)
-    
-    if is_main_process() and isinstance(epoch, int):
-        to_del = epoch - args.save_ckpt_num * args.save_ckpt_freq
-        old_ckpt = output_dir / ('checkpoint-%s.pth' % to_del)
-        if os.path.exists(old_ckpt):
-            os.remove(old_ckpt)
+    save_on_master(to_save, save_path)
 
 def auto_load_model(args, model, model_without_ddp, optimizer, loss_scaler, model_ema=None):
     output_dir = Path(args.output_dir)
-    if args.auto_resume and len(args.resume) == 0:
+    if len(args.checkpoint) == 0:
         import glob
         all_checkpoints = glob.glob(os.path.join(output_dir, 'checkpoint-*.pth'))
         latest_ckpt = -1
@@ -88,17 +74,17 @@ def auto_load_model(args, model, model_without_ddp, optimizer, loss_scaler, mode
             if t.isdigit():
                 latest_ckpt = max(int(t), latest_ckpt)
         if latest_ckpt >= 0:
-            args.resume = os.path.join(output_dir, 'checkpoint-%d.pth' % latest_ckpt)
-        logging.info("Auto resume checkpoint: %s" % args.resume)
+            args.checkpoint = os.path.join(output_dir, 'checkpoint-%d.pth' % latest_ckpt)
+        logging.info("Auto resume checkpoint: %s" % args.checkpoint)
 
-    if args.resume:
-        if args.resume.startswith('https'):
+    if args.checkpoint:
+        if args.checkpoint.startswith('https'):
             checkpoint = torch.hub.load_state_dict_from_url(
-                args.resume, map_location='cpu', check_hash=True)
+                args.checkpoint, map_location='cpu', check_hash=True)
         else:
-            checkpoint = torch.load(args.resume, map_location='cpu')
+            checkpoint = torch.load(args.checkpoint, map_location='cpu')
         model_without_ddp.load_state_dict(checkpoint['model'])
-        logging.info("Resume checkpoint %s" % args.resume)
+        logging.info("Resume checkpoint %s" % args.checkpoint)
         if 'optimizer' in checkpoint and 'epoch' in checkpoint:
             optimizer.load_state_dict(checkpoint['optimizer'])
             if not isinstance(checkpoint['epoch'], str): # does not support resuming with 'best', 'best-ema'
