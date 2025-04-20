@@ -160,7 +160,7 @@ class LocalISICDataset(Dataset):
 
                 # Max ita in our darkest groups (28)
                 target_ita = random.random() * 38 - 10
-                delta_ita = float(ita) - target_ita
+                delta_ita = float(ita.replace(",", ".")) - target_ita
 
                 np_image[:, :, 2] += (mask * delta_ita * 0.5).astype(np.uint)   # Shift b
                 np_image[:, :, 0] -= (mask * delta_ita * 0.12).astype(np.uint)  # Shift L
