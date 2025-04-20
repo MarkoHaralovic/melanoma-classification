@@ -19,6 +19,9 @@ logger = logging.getLogger()
 
 @torch.no_grad()
 def eval(args):
+    device = torch.device(args.device if torch.cuda.is_available() else "cpu")
+    logging.info(f"Using device: {device}")
+
     test_dir = os.path.join(args.data_path, args.split)
     logging.info(f"Test directory: {test_dir}")
 
@@ -26,7 +29,8 @@ def eval(args):
         raise FileNotFoundError(f"Test directory not found: {test_dir}")
 
     checkpoint = torch.load(
-        os.path.join(args.model_dir, args.checkpoint), weights_only=False
+        os.path.join(args.model_dir, args.checkpoint), weights_only=False,
+        map_location=device
     )
     logging.info(
         f"Loaded checkpoint '{args.checkpoint}' from {args.model_dir} (epoch {checkpoint['epoch']})"
@@ -82,9 +86,6 @@ def eval(args):
     logging.info(f"Test dataset group distribution: {test_dataset.group}")
 
     # Model
-    device = torch.device(args.device if torch.cuda.is_available() else "cpu")
-    logging.info(f"Using device: {device}")
-
     model = MelanomaClassifier(
         model_name=chkpt_args.model,
         num_classes=chkpt_args.num_classes * getattr(chkpt_args, "num_groups", 1),
