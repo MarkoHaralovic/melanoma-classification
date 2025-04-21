@@ -37,7 +37,7 @@ logging.basicConfig(
 logger = logging.getLogger()
 
 def train(args):
-    init_distributed_mode(args)
+    if args.distributed: init_distributed_mode(args)
     device = torch.device(args.device if torch.cuda.is_available() else "cpu")
     logging.info(f"Using device: {device}")
     

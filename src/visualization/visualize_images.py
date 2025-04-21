@@ -1,24 +1,24 @@
 import str2bool
 import torchvision.transforms as transforms
-from src.datasets.datasets import KaggleISICDataset, LocalISICDataset
+from src.datasets.datasets import LocalISICDataset
 import matplotlib.pyplot as plt
 import torch
 import argparse
 import numpy as np
 
 def str2bool(v):
-    """
-    Converts string to bool type; enables command line 
-    arguments in the format of '--arg1 true --arg2 false'
-    """
-    if isinstance(v, bool):
-        return v
-    if v.lower() in ('yes', 'true', 't', 'y', '1'):
-        return True
-    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
-        return False
-    else:
-        raise argparse.ArgumentTypeError('Boolean value expected.')
+   """
+   Converts string to bool type; enables command line 
+   arguments in the format of '--arg1 true --arg2 false'
+   """
+   if isinstance(v, bool):
+      return v
+   if v.lower() in ('yes', 'true', 't', 'y', '1'):
+      return True
+   elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+      return False
+   else:
+      raise argparse.ArgumentTypeError('Boolean value expected.')
      
 def main(args):
    if not args.cielab:
@@ -90,7 +90,7 @@ if __name__ == '__main__':
    parser.add_argument('--data_path', default='./isic2020_challenge', type=str,
                      help='Path to dataset with train/valid folders')
    parser.add_argument('--input_size', default=224, type=int)
-   parser.add_argument('--skin_color_csv', default="C:\lumen_melanoma_classification\melanoma-classification\isic2020_challenge\ISIC_2020_full.csv", type=str,
+   parser.add_argument('--skin_color_csv', default="./isic2020_challenge/ISIC_2020_full.csv", type=str,
                         help='Path to the CSV file containing skin color labels')
    
    parser.add_argument('--visualize_num', default=5, type=int,
@@ -106,7 +106,7 @@ if __name__ == '__main__':
    parser.add_argument('--segment_out_skin', type=str2bool, default=True,
                      help='Segment out skin from images')
   
-   parser.add_argument('--device', default='cuda:0', type=str,
+   parser.add_argument('--device', default='cpu', type=str,
                      help='Device to use for training')
    parser.add_argument('--pin_mem', type=str2bool, default=True,
                      help='Pin CPU memory for data loading')

@@ -41,11 +41,12 @@ class OhemCrossEntropy(nn.Module):
       return ohem_loss.mean()
    
 class RecallCrossEntropy(nn.Module):
-   def __init__(self, n_classes, weight = None, ignore_index = -1):
+   def __init__(self, n_classes, weight = None, ignore_index = -1, eps = 1e-2):
       super(RecallCrossEntropy, self).__init__()
       self.n_classes = n_classes
       self.criterion = nn.CrossEntropyLoss(reduction='none', weight=weight, ignore_index=ignore_index)
       self.ignore_index = ignore_index
+      self.eps = eps
       
    def forward(self, logits, targets):
       pred = logits.argmax(dim=1)
@@ -54,25 +55,21 @@ class RecallCrossEntropy(nn.Module):
       gt_counter = torch.ones((self.n_classes,), device=targets.device)
       gt_idx, gt_count = torch.unique(targets, return_counts=True)
       
-      # gt_count[gt_idx==self.ignore_index] = gt_count[1].clone()
-      # gt_idx[gt_idx==self.ignore_index] = 1 
       gt_counter[gt_idx] = gt_count.float()
       
       fn_counter = torch.ones((self.n_classes), device=targets.device)
       fn = targets.view(-1)[idex]
       fn_idx, fn_count = torch.unique(fn, return_counts=True)
       
-      # fn_count[fn_idx==self.ignore_index] = fn_count[1].clone()
-      # fn_idx[fn_idx==self.ignore_index] = 1 
       fn_counter[fn_idx] = fn_count.float()
       
       weight = fn_counter / gt_counter
       
       CE = self.criterion(logits, targets)
       
-      loss =  weight[targets] * CE # weight the loss based on the recall of each class, bigger weight for lower recall
+      loss =  weight[targets] * CE 
       
-      return loss.mean()
+      return loss.mean() + self.eps
         
 class DomainIndependentLoss(nn.Module):
    def __init__(self, num_classes, num_domains, weight=None, conditional_accuracy=False):
@@ -93,8 +90,7 @@ class DomainIndependentLoss(nn.Module):
       logits = torch.cat(output, dim=1)
       loss = self.criterion(logits, domain_dependant_targets, weight=self.weight)
       return loss
-   
-   
+      
 class DomainDiscriminativeLoss(nn.Module):
    def __init__(self, num_classes, num_domains, weight=None, ):
       super(DomainDiscriminativeLoss, self).__init__()

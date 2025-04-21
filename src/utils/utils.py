@@ -71,15 +71,16 @@ def save_model(args, epoch, model, model_without_ddp, optimizer, save_path):
         if not os.path.exists(export_dir):
             os.makedirs(export_dir)
         convert_to_torchscript(model, _input, torchscript_path)
-        export_model_to_onnx(model, _input, onnx_path)
+        convert_to_onnx(model, _input, onnx_path)
         
-def convert_to_torchscript(model, input_tensor, output_path):
-    model.eval()
+def convert_to_torchscript(model, input_tensor, output_path, set_to_eval=True):
+    if set_to_eval:
+        model.eval()
     scripted_model = torch.jit.trace(model, input_tensor)
     scripted_model.save(output_path)
     logging.info(f"Model exported to Torchscript format at {output_path}")
 
-def export_model_to_onnx(model, input_tensor, output_path):
+def convert_to_onnx(model, input_tensor, output_path):
     torch.onnx.export(model, input_tensor, output_path, export_params=True, opset_version=11,
                       do_constant_folding=True, input_names=['input'], output_names=['output'],
                       dynamic_axes={'input': {0: 'batch_size'}, 'output': {0: 'batch_size'}})
