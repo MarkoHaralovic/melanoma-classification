@@ -19,9 +19,17 @@ def convert_checkpoint_to_torchscript_and_onnx(checkpoint_path,
    if isinstance(checkpoint, dict) and 'args' in checkpoint:
       args = checkpoint['args']
       num_classes = args.num_classes
+      model_name = args.model
+      pretrained = False
+      in_22k = args.in_22k
       if args.num_groups > 0:
          num_classes = args.num_classes * args.num_groups
-      model = model_class(num_classes=num_classes)
+      model = model_class(
+         model_name=model_name,
+         num_classes=num_classes,
+         pretrained=pretrained,
+         in_22k=in_22k
+      )
    else:
       model = model_class(num_classes=2) 
    
@@ -44,10 +52,10 @@ def convert_checkpoint_to_torchscript_and_onnx(checkpoint_path,
    
    logging.info(f"Models exported to {output_dir}")
    
-checkpoint_path = r"C:\lumen_melanoma_classification\melanoma-classification\weights\best_model_transformer.pth"
+checkpoint_path = r"C:\lumen_melanoma_classification\melanoma-classification\weights\best_model_efficient_net_m.pth"
 convert_checkpoint_to_torchscript_and_onnx(
    checkpoint_path=checkpoint_path,
    model_class=MelanomaClassifier,
    input_size=224,
-   output_dir=r"C:\lumen_melanoma_classification\melanoma-classification\weights\best_model_transformer"
+   output_dir=r"C:\lumen_melanoma_classification\melanoma-classification\weights\best_model_efficient_net_m"
 )
