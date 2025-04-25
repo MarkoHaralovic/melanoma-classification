@@ -34,7 +34,11 @@ RUN pip install \
    kneed \
    torchsampler \
    tqdm \
-   opencv-python
+   opencv-python \
+   seaborn \
+   onnx \
+   onnxruntime \
+   pandas
 
 COPY ../ /melanoma-classification
 

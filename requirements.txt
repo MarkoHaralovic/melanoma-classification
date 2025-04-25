@@ -10,3 +10,4 @@ torchsampler
 opencv-python
 seaborn
 onnx
+onnxruntime
