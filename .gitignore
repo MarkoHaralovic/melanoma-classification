@@ -10,3 +10,4 @@ isic2020_challenge
 preparer/*
 .venv
 .vscode
+weights/

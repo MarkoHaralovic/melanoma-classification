@@ -56,7 +56,9 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                 loss = criterion(output, targets, groups)
             else:
                 loss = criterion(output, targets)
-
+        import pdb
+        pdb.set_trace()
+        
         loss_value = loss.item()
 
         if not math.isfinite(loss_value): # this could trigger if using AMP
@@ -181,7 +183,8 @@ def evaluate(data_loader, model, device, use_amp=False, criterion=None):
                 loss = criterion(output, target, group)
             else:
                 loss = criterion(output, target)
-
+        import pdb
+        pdb.set_trace()
         if isinstance(criterion, DomainIndependentLoss) and not criterion.conditional_accuracy:
             preds = compute_preds_sum_out(output,criterion.num_classes, criterion.num_domains)
             acc1 = (preds == target).float().sum() / target.shape[0]

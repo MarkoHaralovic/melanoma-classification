@@ -106,7 +106,12 @@ def auto_load_model(args, model, model_without_ddp, optimizer, loss_scaler, mode
                 args.checkpoint, map_location='cpu', check_hash=True)
         else:
             checkpoint = torch.load(args.checkpoint, map_location='cpu')
-        model_without_ddp.load_state_dict(checkpoint['model'])
+
+        if 'model_state_dict' in checkpoint:
+            state_dict = checkpoint['model_state_dict']
+        else:
+            state_dict = checkpoint['model']
+        model_without_ddp.load_state_dict(state_dict)
         logging.info("Resume checkpoint %s" % args.checkpoint)
         if 'optimizer' in checkpoint and 'epoch' in checkpoint:
             optimizer.load_state_dict(checkpoint['optimizer'])

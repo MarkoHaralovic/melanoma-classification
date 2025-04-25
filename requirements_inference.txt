@@ -1,0 +1,7 @@
+numpy
+onnxruntime
+torchvision
+cv2
+pandas
+tqdm
+torch
