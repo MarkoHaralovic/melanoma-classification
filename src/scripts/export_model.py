@@ -55,10 +55,59 @@ def convert_checkpoint_to_torchscript_and_onnx(checkpoint_path,
    
    logging.info(f"Models exported to {output_dir}")
    
-checkpoint_path = r"C:\lumen_melanoma_classification\melanoma-classification\weights\best_model_domain_discriminative.pth"
-convert_checkpoint_to_torchscript_and_onnx(
-   checkpoint_path=checkpoint_path,
-   model_class=MelanomaClassifier,
-   input_size=224,
-   output_dir=r"C:\lumen_melanoma_classification\melanoma-classification\weights\12_best_model_domain_discriminative"
-)
+
+import argparse
+
+def parse_args():
+   parser = argparse.ArgumentParser(description="Convert PyTorch checkpoint to TorchScript and ONNX formats")
+   
+   parser.add_argument(
+      "--checkpoint_path", 
+      type=str, 
+      default=r"../../weights/best_model_domain_discriminative/best_model.pth",
+      help="Path to the checkpoint (.pth file) to be converted"
+   )
+   
+   parser.add_argument(
+      "--output_dir", 
+      type=str, 
+      default=r"../../output/best_model_domain_discriminative",
+      help="Directory where the exported models will be saved"
+   )
+   
+   parser.add_argument(
+      "--input_size", 
+      type=int, 
+      default=224,
+      help="Input image size (height and width) for the model"
+   )
+   
+   parser.add_argument(
+      "--export_torchscript", 
+      action="store_true", 
+      default=True,
+      help="Export model to TorchScript format"
+   )
+   
+   parser.add_argument(
+      "--export_onnx", 
+      action="store_true", 
+      default=True,
+      help="Export model to ONNX format"
+   )
+   
+   return parser.parse_args()
+
+
+if __name__ == "__main__":
+   args = parse_args()
+   
+   log_level = logging.DEBUG if args.verbose else logging.INFO
+   logging.basicConfig(level=log_level, format='%(asctime)s - %(levelname)s - %(message)s')
+   
+   convert_checkpoint_to_torchscript_and_onnx(
+      checkpoint_path=args.checkpoint_path,
+      model_class=MelanomaClassifier,
+      input_size=args.input_size,
+      output_dir=args.output_dir
+   )

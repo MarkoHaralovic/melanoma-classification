@@ -12,7 +12,7 @@ in_22k: false
 input_size: 224
 drop_path: 0.1
 test: true
-batch_size: 32
+batch_size: 2
 epochs: 10
 start_epoch: 0
 update_freq: 1

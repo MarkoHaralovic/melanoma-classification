@@ -1,6 +1,6 @@
 # Installation
 
-We provide installation instructions.
+Full description available in our technical documentation [./documentation/technical_documentation.pdf]
 
 ## Dependency Setup
 Create an new conda virtual environment
@@ -54,3 +54,4 @@ Download the [isic2020_challenge](link) classification dataset and structure the
         mask4.png
 ```
 
+Scripts to perform that are available in 'preparer' folder.
