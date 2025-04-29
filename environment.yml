@@ -1,4 +1,4 @@
-name: melanoma2
+name: melanoma3
 channels:
   - pytorch
   - conda-forge
@@ -25,3 +25,5 @@ dependencies:
     - opencv-python
     - seaborn
     - onnx
+    - onnxruntime
+    - transformers
