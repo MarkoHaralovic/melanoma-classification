@@ -1,0 +1,130 @@
+\chapter{Inference}
+\label{ch:inference}
+
+\section{Inference script}
+To enable seamless usage of our models during inference, we converted all of our best-performing models into both ONNX and TorchScript formats using the corresponding converters. For deployment and runtime inference, we opted to use the ONNX format in combination with ONNX Runtime.
+
+The inference script is located at:
+
+\begin{verbatim}
+melanoma_classification/predict.py
+\end{verbatim}
+
+
+\textbf{Usage:}
+It can be run using this commands:
+
+\begin{lstlisting}[language=bash, caption={Run ONNX-based inference}, label={lst:onnx_inference}]
+cd melanoma-classification
+
+python predict.py \
+    --onnx_model_path /path/to/onnx_model.onnx \
+    --input_folder /path/to/images/folder \
+    --image_width 224 \
+    --image_height 224 \
+    --output_csv /path/where/to/save/predictions.csv
+\end{lstlisting}
+
+Our submission automatically loads the image width and height, as well as the ONNX checkpoint of our best model. To run the model on a folder of images and obtain results, the user must execute the following command:
+
+\begin{lstlisting}[language=bash, caption={LUMEN submssion inference command}, label={lst:onnx_inference}]
+cd melanoma-classification
+
+python predict.py \
+    --input_folder /path/to/images/folder \
+    --output_csv /path/where/to/save/predictions.csv
+\end{lstlisting}
+
+
+The resulting CSV will contain the following columns:
+\begin{itemize}
+    \item \texttt{image\_name}
+    \item \texttt{target}
+\end{itemize}
+
+
+\section{ Model conversion  to onnx}
+First, navigate to the project root directory:
+
+\begin{verbatim}
+cd melanoma-classification
+\end{verbatim}
+
+Then, run the script as follows:
+
+\begin{lstlisting}[language=bash, caption={Convert model checkpoint to ONNX/TorchScript}, label={lst:model_export}]
+cd melanoma-classification
+
+python -m src.scripts.export_model \
+    --checkpoint_path /path/to/model_checkpoint.pth \
+    --model_class MelanomaClassifier \
+    --output_dir /path/where/converted/models/are/saved
+\end{lstlisting}
+
+
+Inference progress will be logged, and the resulting predictions should appear
+
+
+\section{Hugging Face Inference and Model Access}
+
+There are several ways to download and use the melanoma classification models from Hugging Face:
+
+\subsection{Option 1: Using the \texttt{transformers} library}
+
+First, install the \texttt{transformers} library if you have not already:
+
+\begin{lstlisting}[language=bash, caption={Install Hugging Face Transformers}, label={lst:install_transformers}]
+pip install transformers
+\end{lstlisting}
+
+Then, load the model and feature extractor:
+
+\begin{lstlisting}[language=Python, caption={Load model and feature extractor from Hugging Face}, label={lst:huggingface_load}]
+from transformers import AutoModelForImageClassification, AutoFeatureExtractor
+
+# Load the model
+model_name = "Mhara/melanoma_classification"
+model = AutoModelForImageClassification.from_pretrained(model_name)
+feature_extractor = AutoFeatureExtractor.from_pretrained(model_name)
+
+\end{lstlisting}
+
+\subsection{Option 2: Download a specific file from the Hugging Face Hub}
+
+You can download a specific file (such as a model checkpoint) directly:
+
+\begin{lstlisting}[language=Python, caption={Download specific model weight file}, label={lst:hf_hub_download}]
+from huggingface_hub import hf_hub_download
+
+model_path = hf_hub_download(
+    repo_id="Mhara/melanoma_classification",
+    filename="weights/model_0_best.pth", 
+    repo_type="model"
+)
+
+print(f"Model downloaded to: {model_path}")
+\end{lstlisting}
+
+\subsection{Option 3: Manual download via website or Git clone}
+
+You can also manually download the files:
+
+\begin{itemize}
+    \item Visit \url{https://huggingface.co/Mhara/melanoma_classification/tree/main/weights}
+    \item Click on the specific model file you want to download.
+    \item On the file page, click the download button in the top-right corner.
+\end{itemize}
+
+Alternatively, to download the entire repository:
+
+\begin{lstlisting}[language=bash, caption={Clone the model repository with Git LFS}, label={lst:git_clone}]
+# Install Git LFS
+git lfs install
+
+git clone https://huggingface.co/Mhara/melanoma_classification
+\end{lstlisting}
+
+\noindent
+After cloning, you can access all the model checkpoints locally.
+
+

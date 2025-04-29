@@ -1,0 +1,49 @@
+\chapter{Reproducibility Guide}
+\label{ch:reproducibility}
+
+To reproduce our results, start by cloning the repository:
+
+\url{https://github.com/MarkoHaralovic/melanoma-classification}
+
+Place yourself in the root directory of the cloned repository before running any commands.
+
+\section{System setup}
+\begin{itemize}
+    \item \textbf{Hardware used}: Most experiments were run on 8 NVIDIA Tesla L4 GPUs. However, we also conducted single-GPU experiments, whose results are reported.
+    \item \textbf{Environment setup}: Chapter 3 provides detailed instructions for setting up the Python environment using Conda or Docker, matching the configuration used during training and evaluation.
+\end{itemize}
+
+\section{Exact configurations}
+\begin{itemize}
+    \item As shown in Chapter 4, Listing~\ref{lst:yaml_config_file}, we provide an example YAML configuration file and instructions on how to run the project using it.
+    \item The configuration file used for our best-performing model is available in the \texttt{./configs} folder and is named \texttt{best\_run.yaml}.
+    \item To perform evaluation, you can use the same \texttt{best\_run.yaml} file. Simply modify it by setting \texttt{test: True} and provide the path to the checkpoint file via the \texttt{checkpoint} parameter.
+\end{itemize}
+
+\section{Expected output directory structure}
+\begin{itemize}
+    \item Output files will be saved under the directory specified by the \texttt{output\_dir} argument, either through the config file or the CLI.
+    \item Logs are saved in a \texttt{/logs} subfolder and include:
+    \begin{itemize}
+        \item \texttt{training.log} – training log + summary of metrics per epoch
+        \item \texttt{log.txt} – detailed training log
+        \item TensorBoard logs in \texttt{events.out.tfevents.*} format
+    \end{itemize}
+    \item Checkpoint files are named \texttt{checkpoint\_epoch\_<NUM>.pth}.
+    \item A \texttt{config.json} file stores all arguments used during the run for future reference.
+\end{itemize}
+
+\section{Run the Code}
+
+To run the experiment and create our best model, use the following command:
+
+\begin{lstlisting}
+python melanoma_train.py --config "./configs/best_run.yaml"
+\end{lstlisting}
+
+To evaluate the newly created model, edit the configuration file  by setting the `test` field to `true`. Then, run:
+
+\begin{lstlisting}
+python melanoma_train.py --config "./configs/best_run.yaml" \
+                         --checkpoint <PATH_TO_WEIGHTS>
+\end{lstlisting}

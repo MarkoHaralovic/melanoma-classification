@@ -1,0 +1,48 @@
+\documentclass[a4paper,11pt,oneside]{book} 
+\usepackage{CS_report} 
+\begin{document}
+    \captionsetup[figure]{margin=1.5cm,font=small,name={Figure},labelsep=colon}
+    \captionsetup[table]{margin=1.5cm,font=small,name={Table},labelsep=colon}
+    
+    \frontmatter    
+    \begin{titlepage}      
+        \begin{center}
+            \includegraphics[width=6cm]{figures/lumen_logo.png}\\[0.5cm]
+            {\LARGE Lumen Data Science\\[0.5cm]
+           Team: MedMax}\\[2cm]
+
+            \linespread{1.2}\huge {
+              
+                Technical documentation
+            }
+            \linespread{1}~\\[2cm]
+			%{\color{blue} \rule{\textwidth}{1pt}}
+            {\Large 
+                Haralović Marko
+            } \\ [0.001cm] 
+            {\Large 
+                Štolfa Duje        
+            }\\[1cm] 
+
+            {\large 
+
+            \large A technical report submitted as part of the solution for the Lumen Data Science task in year 2024./2025.\\
+            \vfill
+                        
+             {\large April 2025}
+        \end{center}
+    \end{titlepage}
+
+    \tableofcontents
+
+    \mainmatter
+    \input{chapters/01_introduction}
+    \input{chapters/02_project_structure}
+    \input{chapters/03_environment_setup} 
+    \input{chapters/04_codebase_usage}
+    \input{chapters/05_inference_script}
+    \input{chapters/06_reproducibility_checklist}
+
+    \bibliographystyle{plain}
+    
+\end{document}

@@ -1,0 +1,244 @@
+\chapter{Codebase usage}
+\label{ch:codebase_usage}
+
+Our codebase is designed to be controlled via command-line arguments. An argument parser captures all user-provided parameters and initializes relevant classes and components accordingly. The main training entry point is \texttt{melanoma\_train.py}, which supports both training and evaluation on CPU, single GPU, multi-GPU, and SLURM-based distributed setups using \texttt{submitit}.
+
+In addition, we provide a dedicated evaluation script, \texttt{melanoma\_eval.py}, which includes its own argument parser and can be used independently for model evaluation.
+
+To improve flexibility, we extended the system to support YAML configuration files. Instead of specifying all parameters via command-line arguments, users can pass a \texttt{--config} flag with a path to a YAML file. This file is automatically parsed, and its values override the defaults defined in the argument parser.
+
+In the following sections, we provide:
+\begin{itemize}
+    \item a description of key arguments,
+    \item a sample bash script for running training and evaluation,
+    \item an example configuration file,
+    \item usage of \texttt{torch.distributed} for multi-GPU setups, and
+    \item guidelines on writing custom YAML configuration files.
+\end{itemize}
+
+\section{Key CLI arguments}
+Our training and evaluation scripts are fully configurable through command-line arguments. Below we highlight some of the most important options for customizing the training pipeline:
+
+\begin{itemize}
+
+    \item \textbf{Dataset}
+    \begin{itemize}
+        \item \texttt{---skin\_color\_csv} \hfill \textit{(default: None)} \\
+        Path to the CSV containing image metadata.
+
+        \item \texttt{---data\_path} \hfill \textit{(default: ./isic2020\_challenge)} \\
+        Path to the images folder.
+    \end{itemize}
+
+    \item \textbf{Model configuration}
+    \begin{itemize}
+        \item \texttt{---model} \hfill \textit{(default: \texttt{convnext\_tiny})} \\
+        Backbone architecture to use.
+
+        \item \texttt{---num\_classes} \hfill \textit{(default: 2)} \\
+        Number of output classes for classification.
+
+        \item \texttt{---num\_groups} \hfill \textit{(default: 1)} \\
+        Number of skin tone groups.
+
+        \item \texttt{---pretrained} \hfill \textit{(default: True)} \\
+        Load pretrained weights (automatically handled).
+
+        \item \texttt{---freeze\_model} \hfill \textit{(default: False)} \\
+        Freeze model backbone for linear probing.
+
+        \item \texttt{---input\_size} \hfill \textit{(default: 224)} \\
+        Input resolution of training images.
+    \end{itemize}
+
+    \item \textbf{Loss function}
+    \begin{itemize}
+        \item \texttt{---ohem} \hfill \textit{(default: False)} \\
+        Use Online Hard Example Mining loss.
+
+        \item \texttt{---ifw} \hfill \textit{(default: False)} \\
+        Apply inverse frequency weighting.
+
+        \item \texttt{---recall\_ce} \hfill \textit{(default: False)} \\
+        Use recall-weighted Cross Entropy loss.
+
+        \item \texttt{---focal\_loss} \hfill \textit{(default: False)} \\
+        Use Focal loss for class imbalance.
+
+        \item \texttt{---domain\_independent\_loss} \hfill \textit{(default: False)} \\
+        Ignore group info in loss function.
+
+        \item \texttt{---domain\_discriminative\_loss} \hfill \textit{(default: False)} \\
+        Separate classes across domain groups.
+    \end{itemize}
+
+    \item \textbf{Sampling and class balancing}
+    \begin{itemize}
+        \item \texttt{---oversample\_malignant} \hfill \textit{(default: False)} \\
+        Oversample malignant lesions during training.
+
+        \item \texttt{---undersample\_benign} \hfill \textit{(default: False)} \\
+        Undersample benign lesions during training.
+
+        \item \texttt{---undersample\_benign\_ratio} \hfill \textit{(default: -1)} \\
+        Ratio for undersampling benign cases.
+    \end{itemize}
+
+    \item \textbf{Preprocessing options}
+    \begin{itemize}
+        \item \texttt{---cielab} \hfill \textit{(default: False)} \\
+        Convert input images to CIELAB color space.
+
+        \item \texttt{---skin\_former} \hfill \textit{(default: False)} \\
+        Apply skin tone shifting transformation.
+
+        \item \texttt{---segment\_out\_skin} \hfill \textit{(default: False)} \\
+        Use skin segmentation to mask background.
+
+        \item \texttt{---conditional\_accuracy} \hfill \textit{(default: False)} \\
+        Report per-group conditional accuracy.
+    \end{itemize}
+
+    \item \textbf{Training setup}
+    \begin{itemize}
+        \item \texttt{---use\_amp} \hfill \textit{(default: False)} \\
+        Use PyTorch AMP for mixed precision.
+
+        \item \texttt{---config} \hfill \textit{(default: None)} \\
+        Path to YAML configuration file.
+    \end{itemize}
+
+\end{itemize}
+
+These are the most important arguments. All available arguments can be found in the argument parser defined in \texttt{src/utils/argparser.py}.
+
+\section{Example bash script}
+To simplify training execution,we used bash scripts to run our experiments. Here we provide example bash scripts for both CPU and multi-GPU setups.
+
+\subsection{CPU setup}
+
+This is a bash script designed to run linear probing using pretrained  DinoV2 ViT-s/14 on resolution 224x224, with 2 classes, using recall based cross entropy and inverse frequency weighting.
+\begin{lstlisting}[language=bash, caption={Example CPU Training Script}, label={lst:cpu_script}]
+python melanoma_train.py \
+   --data_path "./isic2020_challenge" \
+   --skin_color_csv ".isic2020_challenge/ISIC_2020_full.csv" \
+   --model dinov2_vit_small \
+   --batch_size 8 \
+   --epochs 10 \
+   --device cpu \
+   --freeze_model True \
+   --input_size 224 \
+   --num_classes 2 \
+   --pretrained True \
+   --log_dir "./melanoma_logs" \
+   --warmup_epochs 0 \
+   --use_amp False \
+   --lr 0.01 \
+   --weight_decay 0.0001 \
+   --update_freq 1 \
+   --ifw \
+   --recall_ce 
+\end{lstlisting}
+
+\subsection{Multi-GPU setup}
+For distributed training using multiple GPUs, the following script leverages \texttt{torch.distributed.launch}. It automatically detects the environment and configures the device accordingly, and perform same linear probing on the features extracted by DinoV2 ViT-s/14.
+
+\begin{lstlisting}[language=bash, caption={Example Multi-GPU Training Script}, label={lst:gpu_script}]
+#!/bin/bash
+
+python -m torch.distributed.launch \
+   --nproc_per_node=4 \
+   --master_port=29500 \
+   --use_env \
+   melanoma_train.py \
+   --data_path "./isic2020_challenge" \
+   --skin_color_csv "./isic2020_challenge/ISIC_2020_full.csv" \
+   --model dinov2_vit_small \
+   --batch_size 32 \
+   --epochs 10 \
+   --device "cuda" \
+   --freeze_model True \
+   --input_size 224 \
+   --num_classes 2 \
+   --num_workers 4 \
+   --pretrained True \
+   --log_dir "./melanoma_logs" \
+   --warmup_epochs 0 \
+   --use_amp False \
+   --lr 0.01 \
+   --weight_decay 0.0001 \
+   --mixup 0.0 \
+   --update_freq 1 \
+   --ifw \
+   --recall_ce \
+   --distributed
+\end{lstlisting}
+
+These scripts can be easily adapted by changing model architecture, dataset paths, or enabling additional options such as skin tone preprocessing or different loss functions.
+
+\subsection{Evaluation script}
+
+To evaluate a trained model checkpoint, we use the same \texttt{melanoma\_train.py} entry point with the \texttt{--test} flag. Below is an example bash command to run evaluation on a saved model.
+
+\begin{lstlisting}[language=bash, caption={Example Evaluation Script}, label={lst:evaluation_script}]
+python melanoma_train.py \
+   --data_path "./isic2020_challenge" \
+   --skin_color_csv "./isic2020_challenge/ISIC_2020_full.csv" \
+   --model dinov2_vit_small \
+   --batch_size 8 \
+   --device $DEVICE \
+   --input_size 224 \
+   --num_classes 2 \
+   --checkpoint <PATH_TO_CHECKPOINT> \
+   --ifw \
+   --test
+\end{lstlisting}
+
+This script loads the specified checkpoint and evaluates it on the validation split. Results such as loss, accuracy, and per-group metrics will be logged and saved to the output directory. The use of the \texttt{--ifw} flag ensures evaluation loss is consistent with the training configuration.
+
+\section{Running with configuration files}
+
+In addition to command-line arguments, our training pipeline supports YAML-based configuration files for improved reproducibility and cleaner experiment setup.
+
+\subsection*{Usage}
+
+To run the training script using a YAML configuration file, pass the file path using the \texttt{--config} argument:
+
+\begin{lstlisting}[language=bash, caption={Run training using a config file}, label={lst:yaml_config_usage}]
+python melanoma_train.py \
+   --config "configs/dino_vit_small.yaml" \
+   --data_path "./isic2020_challenge" \
+   --skin_color_csv "./isic2020_challenge/ISIC_2020_full.csv" \
+   --device $DEVICE \
+   --num_workers 4 \
+   --log_dir "./melanoma_logs" \
+\end{lstlisting}
+
+The \texttt{--config} file can define any argument accepted by the parser. Command-line arguments provided alongside the config file will override values defined in the YAML file.
+
+\subsection*{Example YAML Configuration}
+
+Below is an example of a complete YAML configuration file (e.g., \texttt{configs/dino\_vit\_small.yaml}):
+
+\begin{lstlisting}[language=yaml, caption={YAML config file example}, label={lst:yaml_config_file}]
+data_path: "./isic2020_challenge"
+skin_color_csv: "./isic2020_challenge/ISIC_2020_full.csv"
+model: "dinov2_vit_small"
+batch_size: 8
+epochs: 10
+input_size: 224
+num_classes: 2
+num_workers: 4
+pretrained: true
+log_dir: "./melanoma_logs"
+warmup_epochs: 0
+use_amp: false
+lr: 0.01
+mixup: 0.0
+update_freq: 1
+ifw: true
+weight_decay: 0.0001
+output_dir: "./melanoma_classifier_output"
+\end{lstlisting}
+
+This approach makes it easy to manage multiple experimental configurations and share setups. Configs can be found inside folder ./configs on the main branch.

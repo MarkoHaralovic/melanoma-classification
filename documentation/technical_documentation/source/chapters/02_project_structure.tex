@@ -1,0 +1,303 @@
+\chapter{Project Structure and Organization}
+\label{ch:project_org} % Label for method chapter
+In this section, we describe the technology stack used for the project, how the codebase was organized to ensure modularity, how multi-GPU training was enabled, and how our custom DataLoader handles image loading and preprocessing. We also provide usage details for key components of the code and explain how its functionality can be easily extended.
+
+\section{Technology Stack}
+
+We used Python 3.10 for this project, \texttt{conda} for environment setup as a package manager, and \texttt{PyTorch}\footnote{\url{https://pytorch.org}} as the main deep learning library. We used \texttt{submitit}\footnote{\url{https://github.com/facebookincubator/submitit}} for submitting jobs to \texttt{Slurm}, \texttt{Docker}\footnote{\url{https://www.docker.com}} for code containerization, and \texttt{tmux}\footnote{\url{https://github.com/tmux/tmux}} for running code in detached terminals and avoiding SSH interruptions. \texttt{GitHub} was used for version control and collaboration, while \texttt{Kaggle}\footnote{\url{https://www.kaggle.com}} was used for initial model exploration.
+
+Other important libraries used include \texttt{kneed}\footnote{\url{https://github.com/arvkevi/kneed}} for detecting the knee point of a function (useful for ITA prediction), \texttt{fairlearn}\footnote{\url{https://fairlearn.org}} for fairness metric calculation, \texttt{torchsampler}\footnote{\url{https://github.com/ufoym/imbalanced-dataset-sampler}} for efficient oversampling, \texttt{timm}\footnote{\url{https://github.com/huggingface/pytorch-image-models}} for model creation, \texttt{seaborn}\footnote{\url{https://seaborn.pydata.org}} and \texttt{matplotlib}\footnote{\url{https://matplotlib.org}} for visualization, and \texttt{tensorboardX}\footnote{\url{https://github.com/lanpa/tensorboardX}} for experiment logging. Export to \texttt{ONNX}\footnote{\url{https://onnx.ai}} and \texttt{TorchScript}\footnote{\url{https://pytorch.org/docs/stable/jit.html}} is supported and described in a later section.
+
+We also used \texttt{HuggingFace}\footnote{\url{https://huggingface.co/}} to deploy our model and our code, making our model available for inference using Hugging Face transformers library.
+
+\section{ISIC 2020 Dataset}
+
+We use the official ISIC 2020 classification dataset\footnote{\url{https://challenge.isic-archive.com/data/}}, which includes dermoscopic images labeled as benign or malignant. The dataset must be downloaded and structured in the following format:
+
+\begin{verbatim}
+/path/to/isic2020_challenge/
+  train/
+    class1/
+      img1.jpeg
+    class2/
+      img2.jpeg
+  val/
+    class1/
+      img3.jpeg
+    class2/
+      img4.jpeg
+  masks/ #optional, dataloader works without them.
+    train/
+      class1/
+        mask1.png
+      class2/
+        mask2.png
+    val/
+      class1/
+        mask3.png
+      class2/
+        mask4.png
+\end{verbatim}
+
+In addition to the raw images, we provide a CSV file with following required fields: \texttt{image\_name}, \texttt{group}, \texttt{target}, \texttt{group\_str}, and \texttt{split}. This file enables metadata-based grouping (e.g., by skin tone) and train/validation splitting.
+
+\paragraph{Utilities.}  
+To prepare the dataset, we provide the following scripts:
+
+\begin{itemize}
+    \item \texttt{preparer/move.py} – for moving images to the correct class folders.
+    \item \texttt{preparer/prepare\_split.ipynb} – an  notebook for assigning splits and verifying data organization.
+    \item \texttt{src/scripts/generate\_skin\_masks.py} – script for generating segmentation masks based on skin detection, given a source path.
+\end{itemize}
+
+For reproducibility, the metadata CSV file used during training is also included in our GitHub repository.
+
+\section{Code Structure}
+
+The project is organized in a modular and scalable structure. Below is a simplified directory tree (up to depth 3) that outlines the key components.
+
+\begin{lstlisting}[language=bash, caption={Project Directory Structure}]
+├── configs/                         # Model-specific training configs
+│   ├── convnext_base.py
+│   └── convnext_large.py
+├── docker/                          # Dockerfiles for containerization
+│   ├── Dockerfile
+│   └── Dockerfile_cpu
+├── environment.yml                  # Conda environment definition
+├── isic2020_challenge/             # Dataset: splits, masks, and labels
+│   ├── ISIC_2020_full.csv
+│   ├── masks/
+│   │   ├── train/
+│   │   └── valid/
+│   ├── train/
+│   │   ├── benign/
+│   │   └── malignant/
+│   └── valid/
+│       ├── benign/
+│       └── malignant/
+├── melanoma_classifier_output/     # Training logs, configs, and checkpoints
+├── melanoma_train.py               # Main training script
+├── melanoma_eval.py                # Evaluation script
+├── notebooks/                      # Exploratory notebooks
+│   ├── skin_tone_analysis.ipynb
+│   └── skin_tone_estimation.ipynb
+├── preparer/                       # Data preprocessing scripts
+│   ├── move.py
+│   └── prepare_split.ipynb
+├── src/                            # Core project modules
+│   ├── datasets/
+│   │   ├── data_processing.py
+│   │   ├── datasets.py   # custom datasets
+│   │   └── sampler.py    # custom samplers
+│   ├── engine/
+│   │   ├── engine.py     # train and test logic
+│   │   └── scheduler.py  
+│   ├── evaluation/ 
+│   │   └── metrics.py    # metric definition
+│   ├── models/
+│   │   ├── backbones/    # models used for feature extraction, e.g. ConvNeXt, DinoV2
+│   │   ├── layers/       # layers needed for models initialization
+│   │   ├── losses/       # loss function definitions
+│   │   ├── melanoma_classifier.py # our classification model wrapper
+│   │   ├── optim_factory.py    # optimizer factory
+│   │   └── utils/
+│   ├── scripts/
+│   │   ├── estimate_ita.py             # script for ITAS estimation from images
+│   │   └── generate_skin_masks.py      # mask generator script
+│   ├── utils/
+│   │   ├── argparser.py      # argument parsing utilities
+│   │   ├── distributed.py    # distributed training utilities 
+│   │   ├── logging_utils.py  # logging utilities
+│   │   └── utils.py          # model saving logic utilities, etc.
+│   └── visualization/
+│       └── visualize_images.py
+├── test.sh                         # Testing entrypoint
+├── train.sh                        # Training entrypoint
+└── weights/                        # Model weights directory
+\end{lstlisting}
+
+\section{Modular Design}
+The main idea behind the code is modularity. We wanted to iterate quickly and try different experiment setups, which required from us to build a code that is easy to maintain and even easier to extend.
+
+In the following sections, we will go through main components of our system, focusing on how our custom DataLoader operates, how we made it possible to add a completely new architecture with few lines of code, how we managed to handle multiple options for samplers,  optimizers, losses, loss weights, metric calculations,etc. 
+
+\subsection{Dataloader design}
+\texttt{LocalISICDataset}, as we named it, is a highly modular PyTorch \texttt{Dataset} implementation designed specifically for the ISIC 2020 skin lesion dataset. It supports advanced preprocessing, skin tone–aware augmentation, and segmentation-based manipulation of images, as we wanted to explore whether and how colorspace (RGB vs LAB), augmentations (skin color transformations), segmenting out skin, and oversampling helps our model to perfrom better. 
+
+\paragraph{Key Features:}
+\begin{itemize}
+    \item \textbf{Input configuration:} Supports directory-based dataset structure with separate folders for \texttt{train/test}, \texttt{benign/malignant} images and corresponding segmentation masks. Masks may only be used/present if we want masking out skin and learning only on the masked images.
+    
+    \item \textbf{Skin tone integration:} When a \texttt{skin\_color\_csv} is provided, the loader incorporates:
+    \begin{itemize}
+        \item ITA (Individual Typology Angle)
+        \item Fitzpatrick skin scale
+        \item Group labels for skin-type-aware augmentation
+    \end{itemize}
+    \item \textbf{Oversampling with augmentations:} For malignant samples, user-defined augmentations (e.g., rotations, brightness shifts) can be selectively applied. The loader supports sampling with an oversampling ratio derived from the number of augmentations. This was used to artificially increase the number of positives.
+    
+    \item \textbf{Color space transformation:} 
+    \begin{itemize}
+        \item Standard RGB pipeline
+        \item Optional conversion to CIELAB color space
+        \item Group-specific pixel-level transformations to simulate skin tone shifts ( “skin-former” mode) - idea is to mask out the skin from the image and with certain probability to darken it, as most of the skin color types are of lighter colors.
+    \end{itemize}
+
+    \item \textbf{Mask-based processing:} If \texttt{segment\_out\_skin=True}, the loader uses segmentation masks to isolate lesions and mask out all the other pixels.
+    
+\end{itemize}
+
+\paragraph{Return Values:} Each call to \texttt{\_\_getitem\_\_} returns a triplet:
+\[
+\texttt{(image: Tensor, label: int, group: int)}
+\]
+where \texttt{group} encodes the patient’s skin tone classification, and is used for group-aware training and fairness analysis.
+
+\subsection{Classifier design}
+
+The classification model is implemented in \texttt{src/models/melanoma\_classifier.py}. It is structured as a modular wrapper around backbone feature extractors, enabling flexibility in switching between different model architectures. Each backbone is followed by a classification head — a linear layer — making the overall model suitable for 2-class melanoma classification.
+
+\paragraph{Skin Tone Group-Aware Extension.}
+To support fairness-aware training, the classifier can optionally be extended to produce \texttt{num\_classes} $\times$ \texttt{num\_groups} outputs. This is used when performing group-aware loss computation (e.g., skin tone–sensitive learning), and allows the same model to adapt to fairness constrained tasks.
+
+\paragraph{Backbone Support.}
+The classifier supports the following pretrained architectures:
+
+\begin{itemize}
+    \item \textbf{ConvNeXt} – using \texttt{create\_convnext\_model}\footnote{\url{https://arxiv.org/abs/2201.03545}}
+    \item \textbf{ConvNeXtV2} – using \texttt{create\_convnext\_v2\_model}\footnote{\url{https://arxiv.org/abs/2301.00808}}
+    \item \textbf{EfficientNetV2} – using \texttt{crete\_efficientnet\_v2\_model}\footnote{\url{https://arxiv.org/abs/2104.00298}}
+    \item \textbf{DINOv2} – through \texttt{create\_dinov2\_model}\footnote{\url{https://arxiv.org/abs/2304.07193}}
+\end{itemize}
+
+
+Each model returns either a classification token (e.g., in ViT/DINOv2) or pooled feature vector (e.g., in CNNs), which is then passed to a fully connected \texttt{nn.Linear} head layer. The head is dynamically adjusted to match the number of target classes.
+
+
+\paragraph{Training Flexibility.}
+The classifier accepts parameters to control:
+\begin{itemize}
+    \item Whether to use pretrained weights
+    \item Whether the backbone was trained on ImageNet-22K (via \texttt{in\_22k})
+    \item Whether to freeze the backbone and only fine-tune the head (for linear probing)
+\end{itemize}
+
+The model is used in both standard and fairness-aware training setups. To add a new backbone, one must define a custom \texttt{create\_model\_x} function inside \texttt{src/models/model\_x.py}, and extend the model selection logic in \texttt{src/models/melanoma\_classifier.py} to include the corresponding \texttt{model\_name}.
+
+\noindent The logic can be summarized as the following pseudocode:
+
+\begin{algorithm}[H]
+\caption{Backbone Selection in \texttt{MelanomaClassifier}}
+\begin{algorithmic}[1]
+\Function{MelanomaClassifier}{$model\_name, num\_classes, pretrained, in\_22k, freeze$}
+    \If{$model\_name$ contains "convnext\_"}
+        \State Load ConvNeXt backbone
+        \State Replace head with \texttt{Linear(num\_features, num\_classes)}
+    \ElsIf{$model\_name$ contains "efficientnet"}
+        \State Load EfficientNetV2 with specified parameters
+    \ElsIf{$model\_name$ contains "convnextv2"}
+        \State Load ConvNeXtV2 with specified parameters
+    \ElsIf{$model\_name$ contains "dinov2"}
+        \State Load DINOv2 backbone
+        \State Append \texttt{Linear(num\_features, num\_classes)} to CLS output
+    \Else
+        \State Raise error: Unsupported model
+    \EndIf
+    \State \Return wrapped model
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+
+
+\subsection{Criterion design}
+
+Inside \texttt{src/models/losses/criterion.py}, we define several custom loss functions: \texttt{OhemCrossEntropy}, \texttt{RecallCrossEntropy}, \texttt{DomainIndependentLoss}, \texttt{DomainDiscriminativeLoss}, and \texttt{FocalLoss}, along with support for \texttt{InverseFrequencyWeighting}.
+
+The choice of loss function and whether to enable inverse frequency weighting is controlled via command-line arguments, making it easy to experiment with different training objectives. This modular design also allows us usage of domain-aware and domain-independent strategies during training and evaluation. Again, to add a criterion, one should add a class that inherits \texttt{nn.Module} with forward method and add a command line argument, and the code would work for both binary and domain aware classification.
+
+\subsection{Sampler design}
+
+Inside \texttt{src/models/losses/sampler.py}, we define two custom data samplers: \texttt{BalancedBatchSampler} and \texttt{UnderSampler}. These are built by subclassing PyTorch's \texttt{Sampler} class and are used to mitigate class imbalance during training.
+
+\paragraph{BalancedBatchSampler.}
+This sampler ensures that all classes are equally represented within each batch. It works by oversampling underrepresented classes to match the size of the majority class. 
+
+\paragraph{UnderSampler.}
+This sampler performs dataset-level under-sampling by keeping all samples from the minority class and randomly sampling a fraction (controlled via \texttt{under\_sample\_rate}) of samples from majority classes.
+
+\paragraph{Modularity.}
+Both samplers operate independently of any specific dataset class, but expect the dataset to either expose a \texttt{get\_labels()} method or return labels in the form \texttt{(image, label, group)} from \texttt{\_\_getitem\_\_}. 
+
+Samplers can be plugged directly into the PyTorch \texttt{DataLoader} via the \texttt{sampler=} argument, replacing the default shuffle behavior.
+
+\subsection{Metric and optimizer setup}
+
+Metric calculation differs depending on whether a standard binary classifier is trained or a domain-aware classifier is used. In the latter case, the model produces a \texttt{num\_classes~*~num\_groups} output, which must be reduced to \texttt{num\_classes} before evaluation. Metrics can be seamlessly extended to support both training paradigms, and we define several prediction-handling functions in \texttt{src/evaluation/metrics.py}.
+
+The optimizer is created using a utility from \texttt{src/models/optim\_factory.py}, adapted from Facebook’s official ConvNeXt repository.
+
+
+\subsection{Development workflow}
+
+We used GitHub for version control and code management. To maintain consistent code style, we configured \texttt{pre-commit} hooks for automatic import sorting and code formatting using \texttt{isort} and \texttt{black}. These tools are included as optional development dependencies in \texttt{requirements\_dev.txt} on the main branch.
+
+In addition, we defined a \texttt{pyproject.toml} file to centralize formatting rules for both tool, which is automatically applied when the tools are executed via the command line or through the pre-commit.
+
+Throughout development, we maintained a feature-branch workflow, with separate branches for individual features or experiments.
+
+\subsection{Training and infrastructure}
+Training was conducted on a remote GPU server, which we accessed via SSH. Each training session was initiated through a shell script that passed command-line arguments to our main Python training script. To ensure uninterrupted execution, we used \texttt{tmux}, a terminal multiplexer that allows terminal sessions to be detached and reattached. This made it possible to run long sequences of experiments and monitor them as needed.
+
+To monitor training progress, we implemented a custom logging system that recorded:
+\begin{itemize}
+    \item Per-batch and per-epoch training time
+    \item Learning rate and minimal learning rate
+    \item Loss values and per-class accuracy
+    \item Weight decay and memory consumption
+\end{itemize}
+
+Command-line arguments were also saved, and the system supported per-epoch checkpointing, as well as saving the best-performing model based on a target metric such as F1-score or recall for the malignant class. Evaluation results were logged per epoch into a \texttt{training.log} file, which allowed us to track model performance across runs.
+
+We also supported mixed-precision training using PyTorch’s Automatic Mixed Precision (AMP), which can be enabled with the \texttt{--use\_amp true} flag. The training pipeline supports both single-GPU and multi-GPU setups via \texttt{torch.distributed.launch}, and we extended it with multi-node SLURM support using \texttt{submitit}, as provided by the official ConvNeXt repository.
+
+Experiments were executed on a cluster of 8 NVIDIA L4 GPUs, each with 24GB of memory. We stored the following outputs for each run:
+\begin{itemize}
+    \item \texttt{events.out.tfevents.*} (TensorBoard logs)
+    \item \texttt{config.json} (command-line configuration)
+    \item \texttt{training.log} (epoch-level metrics)
+    \item \texttt{checkpoint\_epoch\_X.pth} and \texttt{best\_checkpoint.pth}
+\end{itemize}
+
+\subsection{ONNX and TorchScript support}
+
+To ensure compatibility with various deployment environments and inference frameworks, we support model export in both \textbf{TorchScript} and \textbf{ONNX} formats.
+
+\paragraph{TorchScript.}
+TorchScript is an intermediate representation of a PyTorch model that can be run independently of Python. We provide the function \texttt{convert\_to\_torchscript} for this:
+
+\begin{lstlisting}[language=Python, caption={TorchScript conversion}, label=list:torchscript_export]
+def convert_to_torchscript(model, input_tensor, output_path):
+    model.eval()
+    scripted_model = torch.jit.trace(model, input_tensor)
+    scripted_model.save(output_path)
+\end{lstlisting}
+
+\textbf{Link:} \url{https://pytorch.org/docs/stable/jit.html}
+
+\paragraph{ONNX.}
+ONNX (Open Neural Network Exchange) is an open format built to represent machine learning models. Export is done via the \texttt{export\_model\_to\_onnx} function:
+
+\begin{lstlisting}[language=Python, caption={ONNX export}, label=list:onnx_export]
+def export_model_to_onnx(model, input_tensor, output_path):
+    torch.onnx.export(model, input_tensor, output_path, export_params=True, opset_version=11,
+                      do_constant_folding=True, input_names=['input'], output_names=['output'],
+                      dynamic_axes={'input': {0: 'batch_size'}, 'output': {0: 'batch_size'}}
+\end{lstlisting}
+
+\textbf{Link:} \url{https://onnx.ai/}
+
+
+Supporting both formats allows portability and speed during deployment, regardless of the serving infrastructure, which is quite important for our task.
+
+We used onnx and onnxruntime for model inference. We wanted to remove the need for users to know anything about our codebase when using our models. We will discuss this in details in Chapter \ref{ch:inference},
