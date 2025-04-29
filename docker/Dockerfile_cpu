@@ -17,7 +17,7 @@ RUN apt-get update && apt-get install -y \
 
 RUN pip install --upgrade pip
 
-RUN pip install numpy==1.24.3
+RUN pip install "numpy<2.0"
 
 RUN pip install \
    torch==2.2.0+cpu \
@@ -38,7 +38,8 @@ RUN pip install \
    seaborn \
    onnx \
    onnxruntime \
-   pandas
+   pandas \
+   transformers
 
 COPY ../ /melanoma-classification
 

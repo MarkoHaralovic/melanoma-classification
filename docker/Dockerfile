@@ -1,10 +1,11 @@
 FROM nvidia/cuda:12.1.1-cudnn8-runtime-ubuntu22.04
 
 RUN apt-get update && apt-get install -y \
-    python3.10 python3-pip python3.10-venv dos2unix ffmpeg libsm6 libxext6 \
+    python3.10 python3-pip python3.10-venv dos2unix ffmpeg libsm6 libxext6 wget\
     && ln -sf python3.10 /usr/bin/python3 \
+    && ln -sf python3 /usr/bin/python \
     && pip3 install --upgrade pip 
-
+    
 WORKDIR /melanoma-classification
 
 RUN pip install torch==2.2.0+cu121 torchvision==0.17.0+cu121 torchaudio==2.2.0+cu121 \
@@ -22,7 +23,8 @@ RUN pip install timm==0.6.13 \
     seaborn \
     onnx \
     onnxruntime \
-    pandas
+    pandas \
+    transformers
 
 COPY ../ /melanoma-classification
 

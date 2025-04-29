@@ -55,7 +55,7 @@ def main():
    parser.add_argument("--onnx_model_path", type=str, required=False, default = "./weights/best_model_domain_discriminative.onnx",
                        help="Path to the ONNX model.")
    parser.add_argument("--input_folder", type=str, required=False, 
-                       default = "./isic2020_challenge/valid/malignant", 
+                       default = "./data", 
                        help="Path to the folder containing images.")
    parser.add_argument("--image_width", type=int, default=224, help="Width of the input images.")
    parser.add_argument("--image_height", type=int, default=224, help="Height of the input images.")

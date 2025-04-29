@@ -9,7 +9,7 @@ else
 fi
 
 python melanoma_train.py \
-    --data_path "./isic2020_challenge_mini" \
+    --data_path "./isic2020_challenge" \
     --skin_color_csv "./isic2020_challenge/ISIC_2020_full.csv" \
     --model convnextv2_atto \
     --in_22k False \
