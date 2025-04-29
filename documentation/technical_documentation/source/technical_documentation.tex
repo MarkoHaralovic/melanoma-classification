@@ -1,5 +1,23 @@
 \documentclass[a4paper,11pt,oneside]{book} 
 \usepackage{CS_report} 
+
+\usepackage{listings}
+\usepackage{xcolor}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=single,
+  backgroundcolor=\color{gray!10},
+  captionpos=b,
+  numbers=left,
+  numberstyle=\tiny,
+  keywordstyle=\color{blue},
+  commentstyle=\color{green!50!black},
+  stringstyle=\color{red},
+}
+
+
 \begin{document}
     \captionsetup[figure]{margin=1.5cm,font=small,name={Figure},labelsep=colon}
     \captionsetup[table]{margin=1.5cm,font=small,name={Table},labelsep=colon}
@@ -34,7 +52,11 @@
     \end{titlepage}
 
     \tableofcontents
-
+    \cleardoublepage
+    \phantomsection
+    \addcontentsline{toc}{chapter}{List of Listings}
+    \lstlistoflistings
+    
     \mainmatter
     \input{chapters/01_introduction}
     \input{chapters/02_project_structure}

@@ -25,13 +25,21 @@ python predict.py \
     --output_csv /path/where/to/save/predictions.csv
 \end{lstlisting}
 
-Our submission automatically loads the image width and height, as well as the ONNX checkpoint of our best model. To run the model on a folder of images and obtain results, the user must execute the following command:
+Our submission automatically loads the image width and height, as well as the ONNX checkpoint of our best model. 
+For this to be possible, please place the \texttt{best\_model\_domain\_discriminative.onnx} model inside the \texttt{/weights} folder. 
+The model is available at the following links:
+\begin{itemize}
+    \item \url{https://huggingface.co/Mhara/melanoma_classification/resolve/main/weights/best_model_domain_discriminative.onnx?download=true}
+    \item \url{https://drive.google.com/file/d/1gswtct5I6AIkGUgLYI1_V-pM4tGthzaO/view?usp=sharing}
+\end{itemize}
+
+To run the model on a folder of images and obtain results, the user must execute the following command:
 
 \begin{lstlisting}[language=bash, caption={LUMEN submssion inference command}, label={lst:onnx_inference}]
 cd melanoma-classification
 
 python predict.py \
-    --input_folder /path/to/images/folder \
+    --image_folder /path/to/images/folder \
     --output_csv /path/where/to/save/predictions.csv
 \end{lstlisting}
 

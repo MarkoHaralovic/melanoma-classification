@@ -4,7 +4,7 @@
 We ensured our code works reliably by using Conda environments. We separated dependencies into:
 device-specific packages (e.g., \texttt{torch}, \texttt{torchaudio}), development dependencies (e.g., \texttt{isort}, \texttt{black}), and core library requirements.
 
-This approach was further extended using Docker to containerize our code. We created two Dockerfiles—one for GPU and one for CPU execution—depending on the availability of a CUDA-capable device. This separation of concerns was motivated by the fact that, as a two-member team with different hardware, we wanted to avoid creating custom Dockerfiles for each user. The only user-specific setting that needs to be changed is the CUDA version.
+This approach was further extended using Docker to containerize our code. We created two Dockerfiles, one for GPU and one for CPU execution, depending on the availability of a CUDA-capable device. This separation of concerns was motivated by the fact that, as a two-member team with different hardware, we wanted to avoid creating custom Dockerfiles for each user. The only user-specific setting that needs to be changed is the CUDA version.
 
 Our environment can be created by:
 \begin{enumerate}
@@ -76,21 +76,10 @@ docker run -it --gpus all melanoma
 
 
 \section{Pull prebuilt image from Docker Hub}
-If you prefer not to build the image locally, you can pull the latest version from Docker Hub. We pushed already buitl images there, both for CPU and GPU devices. 
+If you prefer not to build the image locally, you can pull the latest version from Docker Hub. We pushed already built images there, both for CPU and GPU devices. 
 
-\begin{lstlisting}[language=bash, caption={Pull and run the Docker image from Docker Hub}, label=list:docker_hub]
-# Pull the CPU image from Docker Hub
-docker pull haralovicmarko/melanoma_cpu:latest
-
-# Run the container (CPU version)
-docker run -it haralovicmarko/melanoma_cpu:latest
-
-# Run the container (CPU version) with mounted dir (of images and weights for example)
-docker run -it \
-  -v /path/to/local/data:/melanoma-classification/data \
-  -v /path/to/local/weights:/melanoma-classification/weights \
-  haralovicmarko/melanoma_cpu:latest
-
+\subsection{GPU docker image from Docker Hub (preferred)}
+\begin{lstlisting}[language=bash, caption={Pull and run the Docker GPU enabled image from Docker Hub}, label=list:docker_hub]
 # Pull the GPU image from Docker Hub
 docker pull haralovicmarko/melanoma_gpu:latest
 
@@ -104,3 +93,23 @@ docker run -it --gpus all \
   haralovicmarko/melanoma_gpu:latest
   
 \end{lstlisting}
+
+\subsection{CPU docker image from Docker Hub}
+\begin{lstlisting}[language=bash, caption={Pull and run the Docker CPU enabled image from Docker Hub}, label=list:docker_hub]
+# Pull the CPU image from Docker Hub
+docker pull haralovicmarko/melanoma_cpu:latest
+
+# Run the container (CPU version)
+docker run -it haralovicmarko/melanoma_cpu:latest
+
+# Run the container (CPU version) with mounted dir (of images and weights for example)
+docker run -it \
+  -v /path/to/local/data:/melanoma-classification/data \
+  -v /path/to/local/weights:/melanoma-classification/weights \
+  haralovicmarko/melanoma_cpu:latest
+  
+\end{lstlisting}
+
+\section{Summary}
+Preferably, use the GPU Docker image to run the code. It is bulletproof and works across platforms. If you encounter any difficulties, we recommend building the environment from the provided \texttt{environment.yaml} file. 
+

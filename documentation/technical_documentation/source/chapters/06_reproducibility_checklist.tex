@@ -33,17 +33,41 @@ Place yourself in the root directory of the cloned repository before running any
     \item A \texttt{config.json} file stores all arguments used during the run for future reference.
 \end{itemize}
 
+\section{Setup Environment and Load Weights}
+\label{sec:setup_env}
+
+Use one of the methods described in Section~\ref{ch:env_setup} to recreate the environment.
+
+Create a \texttt{weights} directory and download the model from one of the following links:
+\begin{itemize}
+    \item \url{https://huggingface.co/Mhara/melanoma_classification/tree/main/weights}
+    \item \url{https://drive.google.com/drive/folders/1n0T7q_B23edFUnzJSuIJGLcjuP-XZr-_?usp=sharing}
+\end{itemize}
+The provided paths lead to folders containing ONNX, \texttt{.pth}, and TorchScript checkpoints. 
+For inference, use the ONNX or TorchScript checkpoints. 
+For training and evaluation, use the \texttt{.pth} checkpoint.
+
+
 \section{Run the Code}
 
 To run the experiment and create our best model, use the following command:
 
+For training run:
 \begin{lstlisting}
 python melanoma_train.py --config "./configs/best_run.yaml"
 \end{lstlisting}
 
 To evaluate the newly created model, edit the configuration file  by setting the `test` field to `true`. Then, run:
 
+For evaluation run:
 \begin{lstlisting}
 python melanoma_train.py --config "./configs/best_run.yaml" \
-                         --checkpoint <PATH_TO_WEIGHTS>
+                         --checkpoint <PATH_TO_PTH_WEIGHTS>
+\end{lstlisting}
+
+For inference run 
+
+\begin{lstlisting}
+python predict.py --input_folder <IMAGES_DIR> \
+                         --output_csv <PATH_TO_OUTPUT_CSV>
 \end{lstlisting}
