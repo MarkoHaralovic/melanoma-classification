@@ -1,0 +1,23 @@
+\chapter{Conclusion and future work}
+\label{ch:conclusion}
+
+Our task was to develop a fair binary classifier trained to detect malignant skin lesions. For this purpose, we used the ISIC 2020 Challenge dataset. We estimated the Individual Typology Angle (ITA) and categorized skin color groups for all images, which led to several key insights:
+
+\begin{itemize}
+    \item The dataset is heavily imbalanced toward benign images, with a benign-to-malignant ratio of approximately 49:1. This imbalance introduces a significant prior bias in favor of classifying images as benign.
+    \item A secondary imbalance occurs in the distribution across skin color groups, with the majority of images belonging to individuals with lighter skin tones.
+\end{itemize}
+
+We aimed to develop a model that accommodates these imbalances and avoids group-level and data-level bias. After thorough experimentation, we successfully mitigated bias both at the group and image levels, achieving a high recall of 72.3\% on our validation dataset. We also conducted a detailed fairness analysis of our model.
+
+The final model employed domain-discriminative training, a form of domain-aware learning that suppresses correlations between class labels and domain labels (in our case, skin color) during inference. Specifically, we adapted our pipeline to support ND-way classification, where $N$ is the number of classes and $D$ is the number of domains. For our use case, this resulted in an 8-way classifier ($2 \times 4$).
+
+\section{Future Work}
+
+In future work, we plan to expand our dataset with additional dermoscopic images. We hypothesize that such an approach would significantly improve performance and generalization capability, as supported by findings in the literature~\cite{assessing_bias_in_classifiers}.
+
+We would also explore synthetic data generation techniques to address the extreme class imbalance. One promising direction is the use of generative adversarial networks (GANs) to create synthetic positive samples, an augmentation strategy we were unable to implement in this study due to time constraints.
+
+Moreover, we plan to train a custom segmentation model. Our current Otsu threshold-based segmentation method occasionally produced inaccurate masks and introduced artifacts, such as labeling image edges as lesions.
+
+Finally, we considered ensemble methods but opted against them due to the small number of positive samples, particularly within underrepresented groups. Stratified $k$-fold cross-validation was not feasible, as splitting the data while ensuring group-level representation would compromise the fairness and consistency of model performance. Ensemble training typically benefits from independent parallel learning, but in our case, similar patterns would have been captured across models, diminishing the value of ensembling. We would revisit this approach once we augment the dataset or incorporate additional datasets (e.g., from other years).

@@ -1,0 +1,53 @@
+\documentclass[a4paper,11pt,oneside]{book} 
+\usepackage{CS_report}
+\usepackage{newfloat}
+
+\DeclareFloatingEnvironment[fileext=loe, listname={List of Equations}, name=Equation]{myequation}
+
+\begin{document}
+    \captionsetup[figure]{margin=1.5cm,font=small,name={Figure},labelsep=colon}
+    \captionsetup[table]{margin=1.5cm,font=small,name={Table},labelsep=colon}
+    
+    \frontmatter    
+    \begin{titlepage}      
+        \begin{center}
+            \includegraphics[width=6cm]{figures/lumen_logo.png}\\[0.5cm]
+            {\LARGE Lumen Data Science\\[0.5cm]
+           Team: MedMax}\\[2cm]
+
+            \linespread{1.2}\huge {
+                Project documentation
+            }
+            \linespread{1}~\\[2cm]
+            {\Large Haralović Marko} \\ [0.001cm] 
+            {\Large Štolfa Duje}\\[1cm] 
+
+            {\large 
+            A project documentation submitted as part of the solution for the Lumen Data Science task in year 2024./2025.} \\ 
+            {\large April 2025}          
+        \end{center}
+    \end{titlepage}
+
+    \tableofcontents
+    \listoffigures
+    \listoftables
+    \listofmyequation
+
+    \mainmatter
+    \input{chapters/01_business_understanding}
+    \input{chapters/02_data_understanding}
+    \input{chapters/03_data_preparation}
+    \input{chapters/04_modeling}
+    \input{chapters/05_evaluation}
+    \input{chapters/06_conclusion_and_future_work}
+
+    \begin{appendices}
+    \input{chapters/07A_skin_color_visuals}
+    \input{chapters/07B_skin_fomer_visuals}
+    \input{chapters/07C_model_results}  
+    \end{appendices}
+    
+    \bibliography{references}
+    
+    
+\end{document}

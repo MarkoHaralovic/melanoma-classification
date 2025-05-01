@@ -1,0 +1,82 @@
+\chapter{Business understanding}
+\label{ch:business_understanding}
+
+\section{Melanoma diagnostic process}
+Melanoma is a malignant tumor caused by the uncontrolled division of pigment-producing cells called melanocytes. These cells are mostly contained in the epidermis, the outermost layer of skin, so the greater part of melanoma cases are skin cancer, with rare occurrences in the retina or mucosal surfaces \cite{visual_inspection}. Malignant melanocytes become dangerous when they start spreading to deeper layers of skin, from where they can enter the blood stream and lymphatic system, and rapidly metastasize to any part of the body. Because of this, melanoma are responsible for the majority of skin cancer deaths, even thought they are not the most common type of skin cancer \cite{cnn_vs_derm}. 
+This makes early detection of melanoma a critical aspect in ensuring full patient recovery.
+
+The diagnostic process for melanoma can involve a lot of clinical examinations, but the final decision comes down to a dermatologist who has to decide whether to biopsy a given lesion or not \cite{visual_inspection}. This examination is done visually, typically using a dermatoscope, a tool that magnifies the lesion, reduces reflections and increases the visibility of some features of the lesion and the skin around it. Here, the criteria that clinicians use to asses whether or not a lesion is suspected to be malignant have evolved over time, and range from a few simple rules that can even be used by the patients themselves, to analytically identifying complex lesion structures and analysing the individual's clinical history and risk factors. Some commonly used malignancy criteria include:
+
+\begin{itemize}
+    \item ABCD(E) warning signs \cite{abcde}
+    \begin{itemize}
+        \item Any lesion that has an uneven shape (A, asymmetrical), irregular edges (B, border), multiple colors within it (C), is larger than 6mm in diameter (D), and changes over time (E, evolution) is possibly malignant
+        \item Simple and typically used by non-experts, without using a dermoscope
+        \item It does not account for features that are typical for nodular melanoma
+    \end{itemize}
+    \item Seven-point checklist \cite{seven_point}
+    \begin{itemize}
+        \item Used to assess changes in size, shape, color, sensory changes, the presence of inflammation, crusting/bleeding and a diameter larger than 7 mm
+    \end{itemize}
+    \item Three-point checklist \cite{three_point}
+    \begin{itemize}
+        \item A lesion is likely to be malignant if it has any two of the three criteria
+        \item The criteria are (1) asymmetry of color and structure (not necessarily shape), (2) the presence of an atypical pigment network (holes or lines), or (3) any type of blue-white color
+        \item Requires the use of a dermatoscope
+    \end{itemize}
+    \item Pattern analysis \cite{pattern_analysis}
+    \begin{itemize}
+        \item This criterion involves identifying both global patterns and local features, and matching them with the specific structures and patterns that are typical for either malignant or benign lesions
+        \item A dermatoscope is required to be able to see the fine structures in the lesion
+    \end{itemize}
+    \item Ugly duckling sign \cite{ugly_duckling, isic_2020_dataset}
+    \begin{itemize}
+        \item Highlights the importance of clinical context in the diagnostic process
+        \item When making a diagnosis, the decision if one lesion is atypical is made based on other lesions on that same patient
+        \item If a lesion is considered to be atypical (the "ugly duckling") for that specific patient, it has a high chance of being malignant
+    \end{itemize}  
+\end{itemize}
+
+Given that a referral to a specialist can take a substantial amount of time, and that melanoma can progress very rapidly, urgent reactions made by general practice clinicians could mean the difference between a quick recovery from a small biopsy and multiple years of recovery from metastasized tumors. This is where a reliable technological solution could step into play and aid the decision-making process of not only general practice clinicians, but also expert dermatologists. Developing any technological solution that is to be used in real-world clinical contexts is a big responsibility, and a necessary condition for the deployment of that system is its high reliability. The following sections go over the theory behind the process of ensuring this reliability in the development of a system for melanoma detection.
+
+\section{Fairness of ML systems}
+
+Technological systems aside, unjust treatment of social groups has been an ubiquitous problem in various aspects of human work both now and in the past. A lot of effort is currently being put into the active mitigation of discrimination and any kind of prejudice that could lead to it. To be able to assess fairness and mitigate biases, it is useful to detect which groups of people are going to be affected by the product or process we are designing, and what are the unintended consequences or harms going to be for them. This approach to fairness is commonly known as group fairness, and the characteristics based on which we define these groups are called sensitive features (e.g. gender, race, income).
+
+\subsection{Types of harms}
+
+Harms can be very diverse, and in any particular case we can be dealing with multiple types of harms at the same time. A few common types of harms include the following \cite{fairlearn}:
+
+\begin{itemize}
+    \item Allocation harms
+    \begin{itemize}
+        \item A system under- or over-allocates resources, opportunities or information
+        \item e.g. consistently not approving a personal loan to a group of people who would have managed to pay it back (wouldn't default on the loan)
+    \end{itemize}
+    \item Quality-of-service harms
+    \begin{itemize}
+        \item The performance of a system is not equal across groups
+        \item e.g. a voice recognition system that is less accurate when presented with non-native accents
+    \end{itemize}
+    \item Stereotyping harms
+    \begin{itemize}
+        \item The system perpetuates stereotypes
+        \item Both positive and negative stereotypes can be harmful
+        \item Most commonly, autocompletion software in search engines produce stereotyping harms
+    \end{itemize}
+    \item Quality-of-service harms
+    \begin{itemize}
+        \item A system behaves as if a certain group or some characteristic attributes of a person don't exist
+        \item e.g. an application about the history of DNA research does not include any information about the work of Rosalind Franklin
+    \end{itemize}
+\end{itemize}
+
+\subsection{Parity constraints and disparity metrics}
+
+Identifying harms is a critical step in fairness assessment because all further analysis is then done with respect to the identified types of harms. Most importantly for machine learning systems, this lets us define appropriate measures of fairness. In the case of group fairness, these measures are based on requirements that a given model should perform comparably well across our relevant groups. These requirements are called parity constraints, and the corresponding measures of how well a certain parity constraint is satisfied are disparity metrics \cite{fairlearn}. 
+
+For classification tasks, the most common and relevant parity constraints are demographic parity, equalized odds and equal opportunity. Achieving demographic parity should be prioritized if allocation harms are the most critical type of harm in a given domain. However, that system can still have varying false positive rates across groups and not have equitable accuracy. Thus, if both quality-of-service and allocation harms are important, we should aim at satisfying equalized odds. Equal opportunity also helps diagnose both allocation and quality of service harms, but is a relaxed version of equalized odds \cite{fairlearn}. Disparity metrics are discussed in more detail in chapter \ref{ch:evaluation} and are defined as either the maximum difference or minimum ratio between appropriate per-group performance metrics.
+
+\subsection{The task at hand}
+
+In the case of melanoma classification, we previously discussed that misdiagnosing a malignant lesion as benign means that that patient will not get the appropriate treatment, which could lead to severe consequences. On the other hand, the opposite case of classifying a dermoscopic image of a benign lesion as malignant only means that that person will go through further unnecessary medical examinations which will reveal that the initial diagnosis was falsely positive. In other words, false negative results translate to the under-allocated treatments and diagnoses. Knowing this, we conclude that allocation harms are more severe than quality-of-service harms, and satisfying demographic parity should be prioritized. 
