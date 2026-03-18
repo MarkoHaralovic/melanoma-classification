@@ -56,8 +56,6 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                 loss = criterion(output, targets, groups)
             else:
                 loss = criterion(output, targets)
-        import pdb
-        pdb.set_trace()
         
         loss_value = loss.item()
 
